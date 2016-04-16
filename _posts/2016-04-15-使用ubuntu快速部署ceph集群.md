@@ -9,7 +9,8 @@ tag:
     - 分布式存储
 ---
 
-## 1.安装环境
+## 一、安装环境
+
 本文主要根据官方文档使用ubuntu14.04安装ceph集群，并且简单熟悉其基本操作。整个集群包括一个admin节点（admin node,主机名为node0）和3个存储节点（主机名分别为node1，node2，node3），所有节点均安装ubuntu 14.04操作系统，除了admin节点，其余三个节点除了根磁盘，还额外配置一个磁盘作为单独的osd：
 
 ```bash
@@ -44,9 +45,10 @@ vdb    253:16   0    50G  0 disk
 
 **注意：**后续操作均使用root账号，如果不使用root账号登录，需要创建一个新的账号，该账号必须具有免密码sudo权限，否则后续使用`ceph-deploy`时会失败！
 
-## 2.安装前工作
+## 二、安装前工作
 
 ### 1.设置admin节点root免密码登录其他节点
+
 首先使用`ssh-keygen`生成密钥，位于`~/.ssh/id_rsa.pub`,分别拷贝`id_rsa.pub`文件到所有节点中，若没有设置root密码，可以先拷贝到管理员账号（安装操作系统时使用的用户，具有`sudo`权限）home目录，然后使用管理员账号操作：
 
 ```bash
@@ -63,6 +65,7 @@ ssh node3 uptime
 结果应该不需要输入密码。
 
 ### 2.安装并行ssh命令
+
 在admin节点安装pssh包：
 
 ```bash
@@ -93,6 +96,7 @@ pssh -h hosts.txt uptime
 如果全部结果都为`SUCCESS`,则说明正常工作。
 
 ### 3.使用国内镜像源
+
 为了提高访问速度，建议修改为国内镜像源，我们使用的是阿里云镜像源:
 
 ```
@@ -136,7 +140,7 @@ sudo apt-get update && sudo apt-get install ceph-deploy
 
 生产环境还需要安装ntp服务，保证集群的时钟一致，这次只是为了测试，故省略这一步。另外由于ubuntu默认防火墙是关的，SELinux也没有安装，故不需要任何操作。使用centos安装时需要打开必要端口。
 
-## 3.开始安装ceph集群
+## 三、开始安装ceph集群
 
 我们使用`ceph-deploy`部署，后续操作均在admin节点操作。
 首先需要创建工作环境，该环境会保存所有的配置文件：
@@ -225,7 +229,7 @@ ceph health
 
 结果若返回`active + clean`状态，则说明部署成功！
 
-## 4.扩展节点
+## 四、扩展节点
 
 增加node1也作为osd节点：
 
@@ -258,7 +262,7 @@ ceph-deploy mon add node2 node3
 ceph quorum_status --format json-pretty
 ```
 
-## 5.块存储rbd使用
+## 五、块存储rbd使用
 
 我们使用默认的rbd池，首先创建一个新的块设备（cinder称为volume，ceph称为image）：
 
@@ -315,7 +319,7 @@ none            100M     0  100M   0% /run/user
 rbd snap create test@test-snap
 ```
 
-## 6.分布式文件系统使用
+## 六、分布式文件系统使用
 
 创建一个文件系统：
 
@@ -358,10 +362,10 @@ sudo mount -t ceph 192.168.0.5:6789:/ /mnt -o name=admin,secretfile=admin.secret
 
 运行`df`命令查看是否挂载成功，成功即可像本地文件系统一样操作。
 
-### 7.对象存储
+## 七、对象存储
 
 省略。。。
 
-### 参考
+## 参考
 
 http://docs.ceph.com/docs/master/
