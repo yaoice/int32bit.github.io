@@ -2,6 +2,7 @@
 title: int32bit Blog
 SEOTitle: int32bit的博客 | int32bit Blog
 header-img: img/home-bg.jpg
+username: int32bit
 email: krystism@gmail.com
 description: "About Linux、Openstack、Docker、Bigdata and Ceph "
 keyword: "krystism, int32bit, 付广平, Fu Guangping, @int32bit, krystism Blog , int32bit的博客, int32bit Blog, 博客, 个人网站, 云计算, openstack, docker, 大数据, Hadoop, spark, ceph"
@@ -15,8 +16,8 @@ RSS: true
 weibo_username:     316378881
 zhihu_username:     int32bit
 github_username:    int32bit
-#twitter_username:  int32bit
-#facebook_username:  int32bit
+twitter_username:  int32bit
+facebook_username:  int32bit
 
 
 
