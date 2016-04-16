@@ -1,10 +1,8 @@
 ---
 layout: post
-title: "设置libvirt开启监听tcp"
-subtitle:
+title: 设置libvirt开启监听tcp
 author: int32bit
-tags:
-	- libvirt
+tags:[Linux]
 ---
 
 ## 1.设置libvirtd
