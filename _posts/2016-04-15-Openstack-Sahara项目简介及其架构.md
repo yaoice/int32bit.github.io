@@ -24,7 +24,7 @@ Apache Hadoop是目前被广泛使用的主流大数据处理计算框架，Saha
 * 支持配置模板。
 
 它和其他Openstack组件交互，如图：
-![sahara交互图](sahara-inter.png)
+![sahara交互图](/img/posts/Openstack-Sahara项目简介及其架构/sahara-inter.png)
 
 ## 2.工作流程
 
@@ -73,7 +73,7 @@ sahara支持从Swift对象存储读取数据和保存结果数据，集成文档
 
 ## 6.架构
 sahara架构如图所示：
-![sahara架构图](sahara-architecture.png)
+![sahara架构图](/img/posts/Openstack-Sahara项目简介及其架构/sahara-architecture.png)
 
 主要包括以下几个组件：
 
