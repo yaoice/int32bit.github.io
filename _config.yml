@@ -1,7 +1,7 @@
 # Site settings
 title: "int32bit's Blog"
 SEOTitle: int32bit的博客 | int32bit Blog
-header-img: img/home-bg.jpg
+header-img: img/post-bg-unix-linux.jpg
 username: int32bit
 email: krystism@gmail.com
 description: "About Linux、Openstack、Docker、Bigdata and Ceph "
