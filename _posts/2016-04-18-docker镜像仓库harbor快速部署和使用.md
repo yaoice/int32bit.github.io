@@ -1,0 +1,236 @@
+---
+layout: post
+title: docker镜像仓库harbor快速部署和使用
+subtitle: 如何配置harbor作为本地mirror registry？
+catalog: true
+tags:
+     - docker
+     - 云计算
+---
+
+## 简介
+
+Harbor是VMware公司最近开源的企业级Docker Registry项目,
+项目地址为`https://github.com/vmware/harbor`
+其目标是帮助用户迅速搭建一个企业级的Docker registry服务。它以Docker公司开源的registry为基础，提供了管理UI, 基于角色的访问控制(Role Based Access Control)，AD/LDAP集成、以及审计日志(Audit logging) 等企业用户需求的功能，同时还原生支持中文。Harbor的每个组件都是以Docker容器的形式构建的，使用Docker Compose来对它进行部署。用于部署Harbor的Docker Compose模板位于 /Deployer/docker-compose.yml，由5个容器组成：
+ 
+* Proxy: 由Nginx 服务器构成的反向代理。
+* Registry:由Docker官方的开源registry 镜像构成的容器实例。
+* UI: 即架构中的core services, 构成此容器的代码是Harbor项目的主体。
+* Mysql: 由官方MySql镜像构成的数据库容器。
+* Log: 运行着rsyslogd的容器，通过log-driver的形式收集其他容器的日志。
+
+这几个容器通过Docker link的形式连接在一起，在容器之间通过容器名字互相访问。对终端用户而言，只需要暴露proxy （即Nginx）的服务端口。
+
+## 快速部署方法
+
+Harbor使用`Docker-compose`部署，后续所有的配置以及部署均在`$HARBOR_HOME`/Deploy/`目录下完成，因此若无特别说明，工作目录都在该目录下。
+
+首先需要进行简单的配置，配置文件为`harbor.cfg`，配置项如下：
+
+* hostname：hostname为外部可访问的地址，即bind addr，通常设置为本地公有IP，若内部使用DNS，可设置为主机名。
+* auth_auth：Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，本文先使用本地存储方式，另外一种认证方式ldap将在后续章节单独介绍。
+
+设置完毕后，运行./prepare脚本更新配置。完成配置后，就可以使用docker-compose快速部署harbor：
+
+```bash
+docker-compose up -d
+```
+
+安装完成后，访问Web UI，地址：`http://bind_addr`，即配置的hostname地址，端口为80。如图：
+![harbor首页](/img/posts/docker镜像仓库harbor快速部署和使用/index.png)
+
+## 使用harbor
+
+### Web UI
+
+安装完成后，打开Web UI，点击登录，默认账户`admin/Harbor12345`,登录成功后进入项目管理界面：
+![管理界面](/img/posts/docker镜像仓库harbor快速部署和使用/manage.png)
+用户可以点击“我的项目”进行项目管理，比如新建项目、用户以及权限管理等。点击项目名称，进入该项目下的镜像管理界面，可以查看、检索镜像。
+
+### docker client
+
+以上是UI界面的使用，接下来介绍如何使用docker client进行镜像的管理，由于harbor只支持Registry V2 API，因此Docker client版本必须>= 1.6.0。
+
+由于我们配置认证服务使用的是http，Docker认为是不安全的，要使用我们部署的镜像仓库，需要配置本地docker，修改配置文件(`/etc/default/docker`)为：
+
+```bash
+DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 42.62.101.221"
+```
+其中`42.62.101.221`是我们部署Harbor的地址，即`hostname`配置项值。配置完后需要重启docker服务。
+
+验证能否登录：
+
+```bash
+docker login 42.62.101.221
+# docker login -u admin -p Harbor12345 -e test@gmail.com 42.62.101.221
+```
+登录成功后显示如下：
+![登录成功](/img/posts/docker镜像仓库harbor快速部署和使用/login.png)
+接下来我们上传一个镜像，以push ubuntu镜像为例，首先从docker hub拉取ubuntu镜像：
+
+```bash
+docker pull ubuntu:14.04
+```
+
+然后为该镜像打上新的标签，标签格式为：`Harbor地址/项目名/镜像名称:镜像标签`，如`42.62.101.221/library/ubuntu:14.04`：
+
+```bash
+docker tag ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
+```
+push我们的镜像到harbor仓库中：
+```bash
+docker push ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
+```
+![push镜像](/img/posts/docker镜像仓库harbor快速部署和使用/push.png)
+
+push成功后，我们就可以从harbor仓库中使用`docker pull`拉取我们的镜像了，**注意如果是私有项目，必须先使用docker login登录**：
+
+```bash
+docker pull 42.62.101.221/library/ubuntu:14.04
+```
+
+## 使用harbor作为mirror registry
+
+### Mirror Registry简介
+
+Mirror是Docker Registry的一种特殊类型，它起到了类似代理服务器的缓存角色，在用户和Docker Hub之间做Image的缓存。
+官方定义为：
+> Such a registry is provided by a third-party hosting infrastructure but is targeted at their customers only. Some mechanism ensures that public images are pulled from a sponsor registry to the mirror registry, to make sure that the customers of the third-party provider can docker pull those images locally.
+>  
+
+其基本工作原理是，当用户pull一个镜像时，若镜像在mirror 服务器存在，则直接从mirror服务器拉取，否则若不存在该镜像，则由mirror server自动代理往dockerhub（可配置）中拉取镜像，并缓存到mirror服务器中，当客户再次拉取这个镜像时，直接从mirror server中拉取，不需要再次从dockerhub中拉取。
+
+注意Mirror跟Private Registry有本质区别,参考[DaoCloud宣布Docker Hub Mirror服务永久免费
+](http://blog.daocloud.io/daocloud-mirror-free/)：
+> Private Registry是开发者或者企业自建的Image存储库，通常用来保存企业内部的Docker Image，用于内部开发流程和产品的发布、版本控制。Mirror是一种代理中转服务，我们提供的Mirror服务，直接对接Docker Hub的官方Registry，Docker Hub上有数以十万计的各类Docker Image。在使用Private Registry时，需要在Docker Pull，或Dockerfile中直接键入Private Registry的地址，通常这样会导致跟Private Registry的绑定，缺少灵活性。
+
+原理如图：
+![mirror原理图](/img/posts/docker镜像仓库harbor快速部署和使用/registry_mirror.jpg)
+Harbor目前不支持pull cache功能,已提交[issue #120](https://github.com/vmware/harbor/issues/120)。不过我们只需要手动修改下配置即可完成，具体配置可参考官方[Registry as a pull through cache](https://github.com/docker/distribution/blob/master/docs/mirror.md).
+
+我们在运行`./prepare`之前修改`config/registry/config.yml`文件，追加以下配置：
+
+```yaml
+proxy:
+  remoteurl: https://registry-1.docker.io
+```
+ 
+如果需要访问私有仓库，需要填写dockerhub的用户名和密码：
+
+```yaml
+proxy:
+  remoteurl: https://registry-1.docker.io
+  username: [username]
+  password: [password]
+```
+
+然后重新启动harbor服务：
+
+```bash
+# 注意不要执行./prepare
+docker-compose stop
+docker-compose rm -f
+docker-compose up -d
+```
+
+除了设置harbor（或者registry），还需要配置本地docker服务，指定`--registry-mirror`参数，修改docker配置文件(`/etc/default/docker`)：
+
+```bash
+DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://42.62.101.221 --insecure-registry 42.62.101.221"
+```
+注意替换42.62.101.221为你的registry地址。
+
+**注意：修改了docker配置文件，必须重启docker服务才能生效。**
+
+harbor由于引进了认证功能，因此push操作时，必须保证project存在，比如push krystism/ffmpeg，必须保证harbor创建了krystism project，否则会失败。为了能够正常push/pull dockerhub的官方镜像，务必创建library project，如图：
+![project列表](/img/posts/docker镜像仓库harbor快速部署和使用/library.png)
+假设本地不存在python镜像：
+
+```bash
+docker pull python # pull from dockerhub
+docker rmi python # remove the image
+docker pull python # yes, it will pull from harbor now
+```
+
+我们第一次pull python后，harbor发现不存在该镜像，于是自己作为代理往dockerhub里拉取，拉取后保存到本地,可以通过WebUI查看。客户端再次拉取python镜像时，由于harbor已经存在该镜像，因此不需要再往dockerhub拉取，速度大幅度提高！
+
+## 对接ldap认证
+
+Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，上文已经具体介绍。接下来介绍另外一种认证方式ldap，只需要修改配置文件即可。需要提供ldap url以及ldap basedn参数，并且设置auth_mode为ldap_auth。
+
+### 快速部署ladp服务
+
+为了测试方便，我们使用docker启动一个ldap服务器，启动脚本如下：
+
+```bash
+#!/bin/bash
+NAME=ldap_server
+docker rm -f $NAME 2>/dev/null
+docker run --env LDAP_ORGANISATION="Unitedstack Inc." --env LDAP_DOMAIN="ustack.com" \
+ --env LDAP_ADMIN_PASSWORD="admin_password" -v `pwd`/containers/openldap/data:/var/lib/ldap -v `pwd`/containers/openldap/slapd.d:/etc/ldap/slapd.d --detach --name $NAME  osixia/openldap:1.1.2
+```
+创建新用户，首先需要定义ldif文件，new_user.ldif：
+
+```yaml
+dn: uid=test,dc=ustack,dc=com
+uid: test
+cn: test
+sn: 3
+objectClass: top
+objectClass: posixAccount
+objectClass: inetOrgPerson
+loginShell: /bin/bash
+homeDirectory: /home/test
+uidNumber: 1001
+gidNumber: 1001
+userPassword: 1q2w3e4r
+mail: test@example.com
+gecos: test
+```
+通过以下脚本创建新用户，其中`ldap_server`为ldap服务容器名称。
+
+```bash
+docker cp new_user.ldif ldap_server:/
+docker exec ldap_server ldapadd -x -D "cn=admin,dc=ustack,dc=com" -w admin_password -f /new_user.ldif -ZZ
+```
+
+查看用户是否创建成功：
+
+```bash
+docker exec ldap_server ldapsearch -x -h localhost -b dc=ustack,dc=com -D "cn=admin,dc=ustack,dc=com" -w admin_password
+```
+检查test用户是否存在，若存在，则说明创建成功，否则需要使用`docker logs`查看日志。
+
+### 配置harbor使用ladp认证
+
+修改`harbor.cfg`文件关于ldap配置项，如下：
+
+```conf
+auth_mode = ldap_auth
+ldap_url = ldap://42.62.101.221
+ldap_basedn = uid=%s,dc=ustack,dc=com
+```
+然后重新部署harbor：
+
+```bash
+./prepare
+docker-compose stop
+docker-compose rm -f
+docker-compose up -d
+```
+
+测试是否能够使用test用户登录：
+
+```bash
+docker login -u test -p 1q2w3e4r -e test@example.com 42.62.101.221
+```
+查看结果。
+
+## 参考
+
+* 项目地址：https://github.com/vmware/harbor
+* 官方配置mirror registry文档：https://github.com/docker/distribution/blob/master/docs/mirror.md
+* Daocloud关于mirror的博客：http://blog.daocloud.io/daocloud-mirror-free/
+* openldap部署：https://github.com/osixia/docker-openldap
+
