@@ -29,9 +29,34 @@ Harbor使用`Docker-compose`部署，后续所有的配置以及部署均在`$HA
 首先需要进行简单的配置，配置文件为`harbor.cfg`，配置项如下：
 
 * hostname：hostname为外部可访问的地址，即bind addr，通常设置为本地公有IP，若内部使用DNS，可设置为主机名。
-* auth_auth：Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，本文先使用本地存储方式，另外一种认证方式ldap将在后续章节单独介绍。
+* auth_mode：Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，本文先使用本地存储方式，另外一种认证方式ldap将在后续章节单独介绍。
 
-设置完毕后，运行./prepare脚本更新配置。完成配置后，就可以使用docker-compose快速部署harbor：
+设置完毕后，配置文件为：
+
+```conf
+hostname = 42.62.101.221
+ui_url_protocol = http
+
+#email_server = smtp.mydomain.com
+#email_server_port = 25
+#email_username = sample_admin@mydomain.com
+#email_password = abc
+#email_from = admin <sample_admin@mydomain.com>
+
+##The password of Harbor admin, change this before any production use.
+harbor_admin_password= admin
+
+##By default the auth mode is db_auth, i.e. the credentials are stored in a local database.
+#Set it to ldap_auth if you want to verify a user's credentials against an LDAP server.
+auth_mode = ldap_auth
+
+#The password for the root user of mysql db, change this before any production use.
+db_password = root123
+#Switch for self-registration feature
+self_registration = on
+```
+
+运行./prepare脚本更新配置。完成配置后，就可以使用docker-compose快速部署harbor：
 
 ```bash
 docker-compose up -d
@@ -67,7 +92,7 @@ docker login 42.62.101.221
 ```
 登录成功后显示如下：
 ![登录成功](/img/posts/docker镜像仓库harbor快速部署和使用/login.png)
-接下来我们上传一个镜像，以push ubuntu镜像为例，首先从docker hub拉取ubuntu镜像：
+接下来我们上传一个镜像，以ubuntu镜像为例，首先从docker hub拉取ubuntu镜像：
 
 ```bash
 docker pull ubuntu:14.04
@@ -79,6 +104,7 @@ docker pull ubuntu:14.04
 docker tag ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
 ```
 push我们的镜像到harbor仓库中：
+
 ```bash
 docker push ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
 ```
@@ -96,6 +122,7 @@ docker pull 42.62.101.221/library/ubuntu:14.04
 
 Mirror是Docker Registry的一种特殊类型，它起到了类似代理服务器的缓存角色，在用户和Docker Hub之间做Image的缓存。
 官方定义为：
+
 > Such a registry is provided by a third-party hosting infrastructure but is targeted at their customers only. Some mechanism ensures that public images are pulled from a sponsor registry to the mirror registry, to make sure that the customers of the third-party provider can docker pull those images locally.
 >  
 
@@ -103,7 +130,9 @@ Mirror是Docker Registry的一种特殊类型，它起到了类似代理服务�
 
 注意Mirror跟Private Registry有本质区别,参考[DaoCloud宣布Docker Hub Mirror服务永久免费
 ](http://blog.daocloud.io/daocloud-mirror-free/)：
+
 > Private Registry是开发者或者企业自建的Image存储库，通常用来保存企业内部的Docker Image，用于内部开发流程和产品的发布、版本控制。Mirror是一种代理中转服务，我们提供的Mirror服务，直接对接Docker Hub的官方Registry，Docker Hub上有数以十万计的各类Docker Image。在使用Private Registry时，需要在Docker Pull，或Dockerfile中直接键入Private Registry的地址，通常这样会导致跟Private Registry的绑定，缺少灵活性。
+>
 
 原理如图：
 ![mirror原理图](/img/posts/docker镜像仓库harbor快速部署和使用/registry_mirror.jpg)
