@@ -29,7 +29,7 @@ Harbor使用`Docker-compose`部署，后续所有的配置以及部署均在`$HA
 首先需要进行简单的配置，配置文件为`harbor.cfg`，配置项如下：
 
 * hostname：hostname为外部可访问的地址，即bind addr，通常设置为本地公有IP，若内部使用DNS，可设置为主机名。
-* auth_mode：Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，本文先使用本地存储方式，另外一种认证方式ldap将在后续章节单独介绍。
+* auth_mode：Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，本文先使用本地存储方式，另外一种认证方式LDAP将在后续章节单独介绍。
 
 设置完毕后，配置文件为：
 
@@ -47,7 +47,7 @@ ui_url_protocol = http
 harbor_admin_password= admin
 
 ##By default the auth mode is db_auth, i.e. the credentials are stored in a local database.
-#Set it to ldap_auth if you want to verify a user's credentials against an LDAP server.
+#Set it to ldap_auth if you want to verify a user credentials against an LDAP server.
 auth_mode = ldap_auth
 
 #The password for the root user of mysql db, change this before any production use.
@@ -184,13 +184,13 @@ docker pull python # yes, it will pull from harbor now
 
 我们第一次pull python后，harbor发现不存在该镜像，于是自己作为代理往dockerhub里拉取，拉取后保存到本地,可以通过WebUI查看。客户端再次拉取python镜像时，由于harbor已经存在该镜像，因此不需要再往dockerhub拉取，速度大幅度提高！
 
-## 对接ldap认证
+## 对接LDAP认证
 
-Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，上文已经具体介绍。接下来介绍另外一种认证方式ldap，只需要修改配置文件即可。需要提供ldap url以及ldap basedn参数，并且设置auth_mode为ldap_auth。
+Harbor支持两种认证方式，默认为本地存储，即账号信息存储在mysql下，上文已经具体介绍。接下来介绍另外一种认证方式LDAP，只需要修改配置文件即可。需要提供ldap url以及ldap basedn参数，并且设置auth_mode为ldap_auth。
 
-### 快速部署ladp服务
+### 快速部署LDAP服务
 
-为了测试方便，我们使用docker启动一个ldap服务器，启动脚本如下：
+为了测试方便，我们使用docker启动一个LDAP服务器，启动脚本如下：
 
 ```bash
 #!/bin/bash
@@ -217,7 +217,7 @@ userPassword: 1q2w3e4r
 mail: test@example.com
 gecos: test
 ```
-通过以下脚本创建新用户，其中`ldap_server`为ldap服务容器名称。
+通过以下脚本创建新用户，其中`ldap_server`为LDAP服务容器名称。
 
 ```bash
 docker cp new_user.ldif ldap_server:/
@@ -231,9 +231,9 @@ docker exec ldap_server ldapsearch -x -h localhost -b dc=ustack,dc=com -D "cn=ad
 ```
 检查test用户是否存在，若存在，则说明创建成功，否则需要使用`docker logs`查看日志。
 
-### 配置harbor使用ladp认证
+### 配置harbor使用LDAP认证
 
-修改`harbor.cfg`文件关于ldap配置项，如下：
+修改`harbor.cfg`文件关于LDAP配置项，如下：
 
 ```conf
 auth_mode = ldap_auth
@@ -261,5 +261,5 @@ docker login -u test -p 1q2w3e4r -e test@example.com 42.62.101.221
 * 项目地址：https://github.com/vmware/harbor
 * 官方配置mirror registry文档：https://github.com/docker/distribution/blob/master/docs/mirror.md
 * Daocloud关于mirror的博客：http://blog.daocloud.io/daocloud-mirror-free/
-* openldap部署：https://github.com/osixia/docker-openldap
+* openLDAP部署：https://github.com/osixia/docker-openldap
 
