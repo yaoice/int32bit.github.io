@@ -90,7 +90,9 @@ GIT_BASE=http://git.trystack.cn
 NOVNC_REPO=http://git.trystack.cn/kanaka/noVNC.git
 SPICE_REPO=http://git.trystack.cn/git/spice/spice-html5.git
 ```
+
 ### 启用sahara插件
+
 追加以下内容到`local.conf`:
 
 ```

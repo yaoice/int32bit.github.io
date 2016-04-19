@@ -13,7 +13,7 @@ tags:
 
 ## 0. 前置条件
 
-本文将详细介绍如何使用sahara快速部署hadoop集群，注意由于sahara相对其他服务复杂，使用命令行时需要传递的参数过多，故本文主要介绍通过dashboard的方法部署。在此之前请先确定已经部署好sahara环境，如果还没有这个环境，可以参考[使用devstack部署sahara并安装hadoop集群快速部署](http://..)一个测试环境。另外本文使用的是openstack最新版本Mitaka，测试vanilla的hadoop2.7.1版本，base image使用的ubuntu，需要往`http://sahara-files.mirantis.com/images/upstream/mitaka/`下载`sahara-mitaka-vanilla-hadoop-2.7.1-ubuntu.qcow2`文件，该文件较大，建议使用`axel`下载。
+本文将详细介绍如何使用sahara快速部署hadoop集群，注意由于sahara相对其他服务复杂，使用命令行时需要传递的参数过多，故本文主要介绍通过dashboard的方法部署。在此之前请先确定已经部署好sahara环境，如果还没有这个环境，可以参考[使用devstack快速部署sahara测试环境](http://docker:4000/2016/04/10/使用devstack快速部署sahara测试环境/)一个测试环境。另外本文使用的是openstack最新版本Mitaka，测试vanilla的hadoop2.7.1版本，base image使用的ubuntu，需要往`http://sahara-files.mirantis.com/images/upstream/mitaka/`下载`sahara-mitaka-vanilla-hadoop-2.7.1-ubuntu.qcow2`文件，该文件较大，建议使用`axel`下载。
 
 ## 1. 注册镜像
 
