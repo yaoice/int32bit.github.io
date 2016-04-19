@@ -101,6 +101,10 @@ friends: [
         title: "结构之法，算法之道",
         href: "http://blog.csdn.net/v_july_v"
     },{
+    },{
+        title: "阮一峰的网络日志",
+        href: "http://www.ruanyifeng.com/"
+    },{
         title: "Leetcode解题",
         href: "https://github.com/int32bit/leetcode"
     }

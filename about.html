@@ -1,0 +1,149 @@
+---
+layout: page
+title: "关于我"
+description: "了解我，从这里开始..."
+header-img: "img/post-bg-teamwork.jpg"
+---
+
+<!-- Language Selector -->
+<select onchange= "onLanChange(this.options[this.options.selectedIndex].value)">
+    <option value="0" selected> 中文 Chinese </option>
+    <option value="1"> 英文 English </option>
+</select>
+
+<!-- Chinese Version -->
+<div class="zh post-container">
+
+    <!--copied from markdown -->
+    <blockquote><p>看看代码，逛逛社区，写写博客。<br>
+    世界那么大，我想去看看。</p></blockquote>
+    <p><strong>付广平:&nbsp;</strong><a href="http://www.bupt.edu.cn/">北京邮电大学硕士毕业</a>,曾先后在华为北研所2012实验室、英特尔中国研究院以及阿里巴巴技术保障部实习，从事大数据和云计算相关工作，2016年4月毕业后加入<a href="https://www.ustack.com/">UnitedStack有云</a>大数据 &amp; 容器组，负责Docker、Magnum、Sahara相关工作,Openstack、Docker社区活跃者。
+    <p>北漂宅男一枚,纯Linuxer,Vimer,UNIX哲学信徒,坚持KISS原则。热衷于技术分享、讨论，专注于云计算、分布式、大数据相关技术,具有三年以上的Openstack运维经验，曾参与华为海量测试数据处理工作，使用Spark开发。</p>
+    <img src="/img/kiss.png"></img>
+    <p>曾经痴迷于三国杀游戏，觉得三国杀确实是不错的游戏，要想取胜不仅需要统领全局、运筹帷幄,还需要和队友紧密协作。</p>
+
+
+    <h5>贡献</h5>
+    <ul>
+    <li><a href="#">贡献一</a></li>
+    <li><a href="#">贡献二</a></li>
+    </ul>
+
+    <h5>简历</h5>
+    <ul>
+    <li><a href="#">中文简历</a></li>
+    <li><a href="#">英文简历</a></li>
+    </ul>
+
+    <h5>外部链接</h5>
+    <ul>
+	    <li><a src='https://github.com/int32bit'>github</a></li>
+	    <li><a src='http://weibo.com/316378881'>微博</a> &amp; <a src='https://twitter.com/int32bit'>Twitter(不常用)</a></li>
+	    <li><a src='http://www.cnblogs.com/int32bit/'>cnblog</a></li>
+	    <li><a src='https://plus.google.com/u/0/b/116351270454331464048/'>G+(不常用)</a></li>
+    </ul>
+
+</div>
+
+<!-- English Version -->
+<div class="en post-container">
+    <blockquote><p>Yet another guy. <br>
+    Yet another engineer.</p></blockquote>
+    <p>Coming Soon...</p>
+</div>
+
+<!-- Handle Language Change -->
+<script type="text/javascript">
+    // get nodes
+    var $zh = document.querySelector(".zh");
+    var $en = document.querySelector(".en");
+    var $select = document.querySelector("select");
+
+    // bind hashchange event
+    window.addEventListener('hashchange', _render);
+
+    // handle render
+    function _render(){
+        var _hash = window.location.hash;
+        // en
+        if(_hash == "#en"){
+            $select.selectedIndex = 1;
+            $en.style.display = "block";
+            $zh.style.display = "none";
+        // zh by default
+        }else{
+            // not trigger onChange, otherwise cause a loop call.
+            $select.selectedIndex = 0;
+            $zh.style.display = "block";
+            $en.style.display = "none";
+        }
+    }
+
+    // handle select change
+    function onLanChange(index){
+        if(index == 0){
+            window.location.hash = "#zh"
+        }else{
+            window.location.hash = "#en"
+        }
+    }
+
+    // init
+    _render();
+</script>
+
+
+
+{% if site.duoshuo_username %}
+<!-- 多说评论框 start -->
+<div class="comment">
+    <div class="ds-thread"
+    data-thread-key="{{site.duoshuo_username}}/about"
+    data-title="{{page.title}}"
+    data-url="{{site.url}}/about/"></div>
+</div>
+<!-- 多说评论框 end -->
+
+<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    var _user = '{{site.duoshuo_username}}';
+
+    // duoshuo comment query.
+    var duoshuoQuery = {short_name: _user };
+    (function() {
+        var ds = document.createElement('script');
+        ds.type = 'text/javascript';ds.async = true;
+        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
+        ds.charset = 'UTF-8';
+        (document.getElementsByTagName('head')[0]
+         || document.getElementsByTagName('body')[0]).appendChild(ds);
+    })();
+</script>
+<!-- 多说公共JS代码 end -->
+{% endif %}
+
+
+{% if site.disqus_username %}
+<!-- disqus 评论框 start -->
+<div class="comment">
+    <div id="disqus_thread" class="disqus-thread">
+
+    </div>
+</div>
+<!-- disqus 评论框 end -->
+
+<!-- disqus 公共JS代码 start (一个网页只需插入一次) -->
+<script type="text/javascript">
+    /* * * CONFIGURATION VARIABLES * * */
+    var disqus_shortname = "{{site.disqus_username}}";
+    var disqus_identifier = "{{site.disqus_username}}/{{page.url}}";
+    var disqus_url = "{{site.url}}{{page.url}}";
+
+    (function() {
+        var dsq = document.createElement('script'); dsq.type = 'text/javascript'; dsq.async = true;
+        dsq.src = '//' + disqus_shortname + '.disqus.com/embed.js';
+        (document.getElementsByTagName('head')[0] || document.getElementsByTagName('body')[0]).appendChild(dsq);
+    })();
+</script>
+<!-- disqus 公共JS代码 end -->
+{% endif %}
