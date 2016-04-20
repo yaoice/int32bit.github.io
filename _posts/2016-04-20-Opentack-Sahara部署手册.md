@@ -9,7 +9,6 @@ tag:
     - openstack
     - 云计算
 ---
-# Opentack sahara 部署手册
 
 **注意：在RHEL 5 版本中，Openstack Sahara标记为`Technology Preview`，即只能用于实验，提供的功能并不完全，不能用于生产环境。**
 
@@ -57,7 +56,7 @@ yum install openstack-sahara
 
 接下来的小节详细介绍以上配置。
 
-### （1）配置数据库
+### (1) 配置数据库
 
 数据库连接URL定义在`/etc/sahara/sahara.conf`文件中，使用`openstack-config`命令配置：
 
@@ -73,7 +72,7 @@ sahara-db-manage --config-file /etc/sahara/sahara.conf upgrade head
 ```
 以上命令还会自动配置`/etc/sahara/sahara.conf`连接URL。
 
-### （2）创建sahara服务记录
+### (2) 创建sahara服务记录
 
 创建`sahara`用户：
 
@@ -126,7 +125,7 @@ openstack-config --set /etc/sahara/sahara.conf \
 ```
 其中`SERVICE_PASSWORD`为上面我们创建`sahra`用户时设置的密码。
 
-### (3)防火墙配置
+### (3) 防火墙配置
 
 Sahara需要使用端口8386，因此RHEL需要开放此端口。对于RHEL 6版本操作系统，修改`/etc/sysconfig/iptables`,增加`INPUT`规则允许`TCP/8836`通过，新规则必须出现在所有`REJECT`的`INPUT`规则之前.
 
@@ -147,7 +146,7 @@ firewall-cmd --permanent --add-port=8386/tcp
 firewall-cmd --add-port=8386/tcp
 ```
 
-### (4)其他配置
+### (4) 其他配置
 
 sahara的配置文件为`/etc/sahara/sahara.conf`,用户安装时，默认会提供两个样例配置文件，这两个文件可用于参考：
 
