@@ -217,3 +217,6 @@ service httpd restart
 
 Openstack Sahara建立在Nova、Glance、Heat、Swift等服务之上，旨在为用户提供快速部署和管理Hadoop集群功能，实现类似AWS EMR(Elastic MapReduce Service)功能，但截至到Openstack Mitaka版本仍处于实验阶段，还不能用于实际生产中。若需要快速搭建测试环境，可使用devstack部署。
 
+## 参考
+
+* [Openstack RHEL安装文档](https://access.redhat.com/documentation/en-US/Red_Hat_Enterprise_Linux_OpenStack_Platform/5/html/Installation_and_Configuration_Guide/chap-OpenStack_Sahara_Installation.html)
