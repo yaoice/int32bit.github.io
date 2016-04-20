@@ -12,7 +12,11 @@ tags:
 
 ## 2.设置仓库CNAME
 
-在github page博客的仓库更目录创建`CNAME`文件，文件内容写入申请的域名，比如`int32bit.me`。
+在github page博客的仓库根目录创建`CNAME`文件，文件内容写入申请的域名，比如我的域名：
+
+```
+int32bit.me
+```
 
 ## 3.设置域名解析
 
