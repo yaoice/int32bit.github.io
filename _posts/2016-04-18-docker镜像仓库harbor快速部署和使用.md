@@ -34,7 +34,7 @@ Harbor使用`Docker-compose`部署，后续所有的配置以及部署均在`$HA
 设置完毕后，配置文件为：
 
 ```conf
-hostname = 42.62.101.221
+hostname = 42.62.x.x
 ui_url_protocol = http
 
 #email_server = smtp.mydomain.com
@@ -80,15 +80,15 @@ docker-compose up -d
 由于我们配置认证服务使用的是http，Docker认为是不安全的，要使用我们部署的镜像仓库，需要配置本地docker，修改配置文件(`/etc/default/docker`)为：
 
 ```bash
-DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 42.62.101.221"
+DOCKER_OPTS="$DOCKER_OPTS --insecure-registry 42.62.x.x"
 ```
-其中`42.62.101.221`是我们部署Harbor的地址，即`hostname`配置项值。配置完后需要重启docker服务。
+其中`42.62.x.x`是我们部署Harbor的地址，即`hostname`配置项值。配置完后需要重启docker服务。
 
 验证能否登录：
 
 ```bash
-docker login 42.62.101.221
-# docker login -u admin -p Harbor12345 -e test@gmail.com 42.62.101.221
+docker login 42.62.x.x
+# docker login -u admin -p Harbor12345 -e test@gmail.com 42.62.x.x
 ```
 登录成功后显示如下：
 ![登录成功](/img/posts/docker镜像仓库harbor快速部署和使用/login.png)
@@ -98,22 +98,22 @@ docker login 42.62.101.221
 docker pull ubuntu:14.04
 ```
 
-然后为该镜像打上新的标签，标签格式为：`Harbor地址/项目名/镜像名称:镜像标签`，如`42.62.101.221/library/ubuntu:14.04`：
+然后为该镜像打上新的标签，标签格式为：`Harbor地址/项目名/镜像名称:镜像标签`，如`42.62.x.x/library/ubuntu:14.04`：
 
 ```bash
-docker tag ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
+docker tag ubuntu:14.04 42.62.x.x/library/ubuntu:14.04
 ```
 push我们的镜像到harbor仓库中：
 
 ```bash
-docker push ubuntu:14.04 42.62.101.221/library/ubuntu:14.04
+docker push ubuntu:14.04 42.62.x.x/library/ubuntu:14.04
 ```
 ![push镜像](/img/posts/docker镜像仓库harbor快速部署和使用/push.png)
 
 push成功后，我们就可以从harbor仓库中使用`docker pull`拉取我们的镜像了，**注意如果是私有项目，必须先使用docker login登录**：
 
 ```bash
-docker pull 42.62.101.221/library/ubuntu:14.04
+docker pull 42.62.x.x/library/ubuntu:14.04
 ```
 
 ## 使用harbor作为mirror registry
@@ -166,9 +166,9 @@ docker-compose up -d
 除了设置harbor（或者registry），还需要配置本地docker服务，指定`--registry-mirror`参数，修改docker配置文件(`/etc/default/docker`)：
 
 ```bash
-DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://42.62.101.221 --insecure-registry 42.62.101.221"
+DOCKER_OPTS="$DOCKER_OPTS --registry-mirror=http://42.62.x.x --insecure-registry 42.62.x.x"
 ```
-注意替换42.62.101.221为你的registry地址。
+注意替换`42.62.x.x`为你的registry地址。
 
 **注意：修改了docker配置文件，必须重启docker服务才能生效。**
 
@@ -237,7 +237,7 @@ docker exec ldap_server ldapsearch -x -h localhost -b dc=ustack,dc=com -D "cn=ad
 
 ```conf
 auth_mode = ldap_auth
-ldap_url = ldap://42.62.101.221
+ldap_url = ldap://42.62.x.x
 ldap_basedn = uid=%s,dc=ustack,dc=com
 ```
 然后重新部署harbor：
@@ -252,7 +252,7 @@ docker-compose up -d
 测试是否能够使用test用户登录：
 
 ```bash
-docker login -u test -p 1q2w3e4r -e test@example.com 42.62.101.221
+docker login -u test -p 1q2w3e4r -e test@example.com 42.62.x.x
 ```
 查看结果。
 
