@@ -1,7 +1,7 @@
 ---
 layout: post
-title: Opentack-Sahara部署手册
-subtitle: 手动安装手册，不使用devstack
+title: Opentack-Sahara部署实践
+subtitle: 手动安装实践，不使用devstack
 catalog: true
 tag:
     - sahara
