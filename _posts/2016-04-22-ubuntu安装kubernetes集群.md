@@ -44,7 +44,7 @@ node3
 ```
 以上虽然在部署时其实master也作为minion节点，但为了方便操作，没有把它放到`nodes`组中。
 
-### 2master能够免密码登录所有节点
+### 2.master能够免密码登录所有节点
 
 参考[使用ansible工具批量管理远程主机](http://int32bit.github.io/2016/04/20/使用ansible工具批量管理远程主机/)。
 
