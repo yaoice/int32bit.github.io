@@ -9,9 +9,9 @@ tags:
 ---
 
 
-我们知道使用python很容易实现动态加载代码，我们通常使用`__import__`或者`importlib`，通过配置，我们可以运行时发现和加载插件从而实现应用的扩展。`stevedore`采用一种新的扩展管理机制，这种机制基于[setuptools entry points](http://packages.python.org/setuptools/pkg_resources.html#convenience-api)。
+使用python很容易实现动态加载代码， 比如使用`__import__`或者`importlib`。我们通过配置可以运行时发现(discover)和加载(load)插件从而实现应用的扩展。`stevedore`采用一种基于[setuptools entry points](http://packages.python.org/setuptools/pkg_resources.html#convenience-api)插件的管理机制。
 
-`entry_points`是一个字典，从entry point组名映射到一个表示entry point的字符串或字符串列表。Entry points用来支持动态自动发现服务和插件以及自动生成脚本。stevedore提供的插件管理功能实现了动态加载扩展模块的几种通用模式，各种[模式介绍](http://docs.openstack.org/developer/stevedore/patterns_loading.html)。
+`entry_points`是一个字典，从entry point组名映射到表示entry point的字符串或字符串列表,这个字符串表示对应的插件。Entry points可用来支持动态自动发现服务和插件以及自动生成脚本。stevedore提供的插件管理功能实现了动态加载扩展模块的几种通用模式，各种[模式介绍](http://docs.openstack.org/developer/stevedore/patterns_loading.html)。
 
 在Openstack中使用stevedore最经典的就是数据库驱动，在大多数组件中，比如magnum,nova等，都有一个`db`目录，该目录封装了对数据库的操作，在db目录下有一个`migration.py`文件，该文件定义了如何加载数据库后端驱动：
 
@@ -112,7 +112,7 @@ class OracleDriver(base.Driver):
         print("Execute query from oracle-%s: '%s'" % (self.version(), sql))
 ```
 
-为了使用setuptools工具的entry points，首先必须打包应用。构建和打包过程中会生成一系列元数据，这些元数据定义了如何去寻找和加载这些插件。每一个插件的entry points必须定义一个唯一的命名空间，我们使用`stevedemo.Driver`作为我们使用的命名空间：
+为了使用setuptools工具(python打包和分发工具）的entry points，首先必须打包应用。构建和打包过程中会生成一系列元数据，这些元数据定义了如何去寻找和加载这些插件。每一个插件的entry points必须定义一个唯一的命名空间，我们使用`stevedemo.Driver`作为我们使用的命名空间：
 
 ```python
 # stevedore/setup.py
@@ -138,7 +138,7 @@ setup(
    zip_safe = False,
 )
 ```
-最关键的是最末尾的`setup()`方法的参数`entry_points`，它是一个字典，映射命名空间到定义的插件列表。每一个元素必须是`name = module:importable`格式，其中`name`是插件的名称，用户后续将通过该名称来定位使用的插件。`module`是该插件对应的模块,`importable`是能够被python import的类文件(同一目录下有`__init__.py`文件）。在我们这个例子中，共注册了两个插件，分别为`mysql`和`oracle`。
+最关键的是最末尾的`setup()`方法的参数`entry_points`，它是一个字典，映射命名空间到定义的插件列表。每一个元素必须是`name = module:importable`格式，其中`name`是插件的名称，用户将通过该名称来定位使用的插件。`module`是该插件对应的模块,`importable`是能够被python import的类文件(同一目录下有`__init__.py`文件）。在我们这个例子中，共注册了两个插件，分别为`mysql`和`oracle`。
 
 我们执行`setup.py build`构建代码：
 
@@ -213,9 +213,9 @@ Load mysql successfully!
 Execute query from mysql-5.5: select * from user;
 ```
 
-当我们需要使用oracle时，只需要修改`name`参数为`oracle`即可。当我们需要使用其他数据库后端时，比如sqlite,只需要继承base类并实现抽象方法，注册到entry point中即可。
+当我们需要使用oracle时，只需要修改`name`参数为`oracle`即可。当我们需要使用其他数据库后端时，比如sqlite,只需要继承base类并实现抽象方法，可以位于不同的包和路径，只需要保证具有相同的命名空间并且注册到entry point中即可。
 
-另外一种比较常用的使用方式是同时加载多个插件，并执行所有插件的方法，在openstack最经典的案例是filter功能，比如cinder（或者nova）在scheduler中需要加载所有的filter，在base_handler中：
+另外一种比较常用的使用方式是同时加载多个插件，并执行所有插件的方法，在openstack最经典的案例就是filter，比如cinder（或者nova）在scheduler中需要加载所有的filter，在base_handler中：
 
 ```python
 class BaseHandler(object):
@@ -257,7 +257,7 @@ Execute query from oracle-5.5: 'select * from users;'
 Execute query from mysql-5.5: 'select * from users;'
 ```
 
-`ExtensionManager`的创建和`DriverManager`只有一点区别，不需要指定插件名称，因为它会加载所有在这个命名空间寻找的插件。插件加载的顺序也不需要定义，它依赖于包加载顺序和读取metadata文件的方式。如果需要保证加载顺序，可以使用`NamedExtensionManager`.
+我们发现`ExtensionManager`的创建和`DriverManager`只有一点区别，**不需要指定插件名称**，因为它会加载所有在这个命名空间的插件。插件加载的顺序也不需要定义，它依赖于包加载顺序和读取metadata文件的方式。如果需要保证加载顺序，可以使用`NamedExtensionManager`.
 
 我们传递分离的参数到map方法中，而不是直接调用插件，为什么呢？如果map直接调用插件，每个插件必须是callable的，这就意味着命名空间区分纯粹就是插件的方法了，而使用分离的callable 参数，插件API不需要完全匹配use case，这可以使开发者自由创建更好的API，创建更多自己的方法，以不同的方式调用来完成不同的目的。
 
@@ -265,10 +265,3 @@ Execute query from mysql-5.5: 'select * from users;'
 
 * [Patterns for Loading](http://docs.openstack.org/developer/stevedore/patterns_loading.html)
 * [Patterns for Enabling](http://docs.openstack.org/developer/stevedore/patterns_enabling.html)
-
-
-
-
-
-
-
