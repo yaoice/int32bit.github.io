@@ -131,7 +131,9 @@ pssh -h ~/hosts.txt 'apt-get update -y'
 ```bash
 wget -q -O- 'https://download.ceph.com/keys/release.asc' | sudo apt-key add -
 echo deb http://download.ceph.com/debian-{ceph-stable-release}/ $(lsb_release -sc) main | sudo tee /etc/apt/sources.list.d/ceph.list
+# 注意: ceph-stable-release是选择安装的版本，我部署时选择的是jewel!
 ```
+
 安装ceph-deploy：
 
 ```bash
