@@ -1,0 +1,46 @@
+---
+title: "/jslinux"
+---
+
+<!DOCTYPE html>
+<html>
+<head>
+<title>jslinux</title>
+{% include head.html %}
+<style>
+body {
+	background: black;
+}
+.term {
+    font-family: courier,fixed,swiss,monospace,sans-serif;
+    font-size: 14px;
+    color: #f0f0f0;
+    background: #000000;
+    display: block;
+    position: relative;
+    padding: 0px;
+    border:0px;
+    margin: 0px;
+    top: 30px;
+}
+
+.termReverse {
+    color: #000000;
+    background: #00ff00;
+}
+</style>
+</head>
+	<body onload="start();">
+
+	{% include nav.html %}
+
+	<div>
+		<script type="text/javascript" src="utils.js"></script>
+		<script type="text/javascript" src="term.js"></script>
+		<script type="text/javascript" src="cpux86-ta.js"></script>
+		<script type="text/javascript" src="jslinux.js"></script>
+	</div>
+	</hr>
+	<div id="copyright">&copy; 2011-2015 Fabrice Bellard</div>
+</body>
+</html>
