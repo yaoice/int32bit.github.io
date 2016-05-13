@@ -41,6 +41,7 @@ deb-src http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted unive
 ```bash
 sudo apt-get update -y
 sudo apt-get install -y git python-pip
+sudo pip install --upgrade pip # ubuntu软件源的pip版本太低，我们使用pip更新到最新版本。
 ```
 
 安装pip后，为了提高下载速度，建议使用国内的镜像源：
