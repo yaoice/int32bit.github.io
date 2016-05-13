@@ -13,7 +13,7 @@ tag:
 ## 1.申请公有云主机和云硬盘
 
 访问[UOS](https://www.ustack.com/)申请云主机，选择操作系统为`ubuntu14.04 64位`！
-**注意：由于后续我们要部署hadoop集群，至少需要两个节点，且配置为m1.small，因此我们申请的云主机必须满足要求，即vcpu > 4, memory > 4GB**,否则后面部署集群时会出现`no valid host`错误而失败！我在部署时使用的配置为`16 vcpu，32GB memory`。
+**注意：由于后续我们要部署hadoop集群，至少需要两个节点，且配置为`m1.small`，因此我们申请的云主机必须满足要求，即`vcpu > 4, memory > 4GB`**,否则后面部署集群时会出现`no valid host`错误而失败！我在部署时使用的配置为`16 vcpu，32GB memory`。
 由于我们的公有云主机默认只有20GB磁盘空间，整个盘挂载到了根下，且没有使用LVM，无法扩容磁盘空间，我们后续部署hadoop集群时需要较大的磁盘空间，一个节点至少需要20GB，显然满足不了要求，我们可以通过挂载云硬盘方式解决这个问题。在我们的公有云上申请一块200GB（大于50GB）的云硬盘并挂载到云主机中，挂载后先不用管它，后续我们再处理。
 
 ## 2.安装devstack
@@ -40,7 +40,17 @@ deb-src http://mirrors.aliyun.com/ubuntu/ trusty-backports main restricted unive
 
 ```bash
 sudo apt-get update -y
-sudo apt-get install -y git
+sudo apt-get install -y git python-pip
+```
+
+安装pip后，为了提高下载速度，建议使用国内的镜像源：
+
+```bash
+mkdir -p ~/.pip
+cat >~/.pip/pip.conf <<EOF
+[global]
+index-url = https://pypi.mirrors.ustc.edu.cn/simple
+EOF
 ```
 
 ### 拉取源码并创建stack用户
@@ -91,18 +101,30 @@ NOVNC_REPO=http://git.trystack.cn/kanaka/noVNC.git
 SPICE_REPO=http://git.trystack.cn/git/spice/spice-html5.git
 ```
 
+以上即完成devstack的基本配置，如果不需要安装其他插件，直接运行`./stack.sh`即可快速部署具有`keystone`、`glance`、`nova`以及`dashboard`的openstack环境。
+
 ### 启用sahara插件
 
-追加以下内容到`local.conf`:
+除了openstack的基本服务，比如`keystone`,`glance`,`nova`等，其他服务均以插件的形式安装，安装插件只需要简单的追加如下配置:
+
+```
+enable_plugin PLUGIN_NAME PLUGIN_ADDRESS
+```
+
+比如安装sahara组件，追加以下内容到`local.conf`:
 
 ```
 enable_plugin sahara https://github.com/openstack/sahara.git
 enable_plugin sahara-dashboard https://github.com/openstack/sahara-dashboard.git
 ```
+
 **注意：**
 
 * 务必安装sahara-dashboard，否则sahara只能使用命令行工具，而文档手册几乎全部基于dashboard的操作，使用命令行操作非常麻烦。
 * 插件地址不要使用git.openstack.org，访问非常不稳定，经常失败。
+
+如果需要安装其他插件，比如trove、magnum，只需要替换以上的`sahara`分别为`trove`、`magnum`即可。
+
 
 另外附上所有[devstack可用插件列表](http://docs.openstack.org/developer/devstack/plugin-registry.html)。
 
@@ -116,7 +138,14 @@ enable_plugin sahara-dashboard https://github.com/openstack/sahara-dashboard.git
 
 ### 校验是否安装成功
 
-若安装成功，会输出dashborad地址以及默认的用户名和密码，登录dashboard，看sahara服务是否安装好，即在项目中是否有“数据处理”菜单，并在命令行运行`sahara cluster-list`看是否正常。
+若安装成功，会输出dashborad地址以及默认的用户名和密码，登录dashboard，看sahara服务是否安装好，即在项目中是否有“数据处理”菜单，并在命令行运行`sahara cluster-list`看是否正常:
+
+```bash
+source  openrc admin admin
+sahara cluster-list
+# or
+# openstack cluster list
+```
 
 ## 3.挂载云硬盘到分区
 
@@ -193,5 +222,4 @@ Slave分配的服务角色为：
 * devstack部署完后，如果修改了`local.conf`配置文件或者重启主机，需要`unstack`然后`stack`重新部署，每次部署需要花费大量时间，并且所有数据都会丢失。
 * 目前版本没有rejoin-stack。
 * 官方没有重启服务的脚本。
- 
  
