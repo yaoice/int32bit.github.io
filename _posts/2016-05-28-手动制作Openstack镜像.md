@@ -45,7 +45,7 @@ sudo virt-install --virt-type kvm --name $NAME --ram 1024 \
 
 进入虚拟机控制台可以看到Centos的启动菜单，选择`Install Centos 7`，继续选择语言后将进入`INSTALLION SUMMARY`，其中大多数配置默认即可，`SOFTWARE SELECTION`选择`Minimal Install`，`INSTALLATION DESTINATION`需要选择手动配置分区，我们只需要一个根分区即可，不需要`swap`分区，文件系统选择`ext4`，存储驱动选择`Virtio Block Device`，如图：
 
-![分区表设置](img/posts/手动制作Openstack镜像/filesystem.png)
+![分区表设置](/img/posts/手动制作Openstack镜像/filesystem.png)
 
 配置完成后就可以开始安装了，在`CONFIGURATION`中设置root临时密码，自己记住即可，制作完后`cloud-init`将会重新设置root初始密码。
 
@@ -193,7 +193,7 @@ glance image-update --property hw_qemu_guest_agent=yes $IMAGE_ID
 
 首先使用创建的镜像启动一台新云主机（终于叫云主机，不叫虚拟机了==)，如果使用nova CLI工具，需要传递`--admin-pass`参数并指定密码,并指定`flavor`，要求`disk`大小为20GB。如果使用Openstack dashborad创建，需要简单配置下dashborad使其支持配置云主机密码面板，如图：
 
-![设置密码面板](img/posts/手动制作Openstack镜像/set_password.png)
+![设置密码面板](/img/posts/手动制作Openstack镜像/set_password.png)
  
 创建成功后进入控制台，使用root账号以及设置的新密码，如果使用创建时设置的密码登录成功，说明注入密码成功。
 
@@ -205,7 +205,7 @@ df -h
 ```
 如图：
 
-![查看磁盘信息](img/posts/手动制作Openstack镜像/disk.png)
+![查看磁盘信息](/img/posts/手动制作Openstack镜像/disk.png)
 镜像原始根分区大小为10GB，如果`lsblk`显示`vda`大小为`20GB`，说明文件系统自动识别了磁盘大小。如果df显示`/dev/sda1`size为20GB，说明根分区自动完成了扩容操作。
 
 接下来测试动态修改密码，由于默认`dashboard`页面没有实现修改密码面板功能，我们需要在后台操作。
