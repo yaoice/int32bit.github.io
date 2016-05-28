@@ -130,6 +130,7 @@ rpm -qa kernel | sed 's/^kernel-//'  | xargs -I {} dracut -f /boot/initramfs-{}.
 ```bash
 /sbin/shutdown -h now
 ```
+
 ## 5.清理工作
 
 在宿主机上运行以下命名，移除宿主机信息，比如mac地址等。
