@@ -241,13 +241,13 @@ rbd_ceph_conf=/etc/ceph/ceph.conf
 
 以上有两个配置组，分别为sata-ceph和ssd-ceph，这里我们都使用了ceph rbd作为存储后端，实际部署时可以是完全不同的存储后端，比如混合rbd和LVM。以上我们指定了不同pool以及不同的后端名称，后端名称是为了方便后续创建volume type引用。我们由上面关于Ceph中介绍可知，不同的pool可以定义不同的rule从而选择不同特性的硬件，如果能够绑定Ceph pool和volume问题就解决了，值得庆幸的是，Cinder就是这么实现的。
 
-Cinder可以自定义volume type，分别创建ssd和sata两个volume type:
+Cinder自定义volume type，分别创建ssd和sata两个volume type:
 
 ```bash
 cinder type-create ssd
 cinder type-create sata
 ```
-创建完后type后就可以绑定volume_backend_name从而实现与ceph pool关联起来:
+创建完后type后绑定volume_backend_name从而实现与ceph pool关联起来:
 
 ```
 cinder type-key sata set volume_backend_name=sata
@@ -266,19 +266,19 @@ cinder type-key ssd set volume_backend_name=ssd
 +--------------------------------------+------+-----------------------------------+
 ```
 
-此时只需要在创建时指定volume type就实现了选择不同Qos性能的数据卷，比如：
+此时只需要在创建时指定volume type就可以实现创建不同QoS性能的数据卷，比如：
 
 ```
 cinder create --volume-type ssd --display-name int32bit-test-ssd 1
 ```
 
-以上我们通过自定义volume type并绑定不同的后端实现了对volume访问的QoS质量控制，接下来我们介绍如何通过制定volume type实现不同的Qos质量控制。和前面的步骤类似，首先创建一个high-iops-type volume:
+以上我们通过自定义volume type并绑定不同的后端实现了对volume访问的QoS质量控制，接下来我们介绍如何通过制定volume type实现不同的QoS量化控制。和前面的步骤类似，首先创建一个high-iops-type volume type:
 
 ```
 cinder type-create high-iops-type
 ```
 
-cinder通过qos来实现volume的量化控制，我们创建high-iops，设置读最大iops为2000，写最大iopos为1000:
+cinder通过qos实例对volume进行量化控制，我们需要创建high-iops，设置读最大iops为2000，写最大iopos为1000:
 
 ```bash
 cinder qos-create high-iops consumer="front-end" read_iops_sec=2000 write_iops_sec=1000
@@ -295,9 +295,9 @@ $ cinder qos-list
 +--------------------------------------+-----------+-----------+---------------------------------------------------------+
 ```
 
-其中consumer的合法值为front-end、back-end、both。front-end使用前端控制（hypervisor控制，会在libvirt xml文件中定义）, 而back-end表示使用后端控制（cinder drivers），both表示前后端同时进行Qos控制。
+其中consumer的合法值为front-end、back-end、both。front-end表示使用前端控制（hypervisor控制，会在libvirt xml文件中定义）, 而back-end表示使用后端控制（cinder drivers,需要driver支持），both表示前后端同时进行QoS控制。
 
-最好需要绑定qos和volume type:
+最后绑定qos实例和volume type实例:
 
 ```bash
 QOS_SPEC_ID=4ba70d30-eb36-4267-8ee5-5c9cc2f8af32
@@ -316,7 +316,7 @@ $ cinder qos-get-association 4ba70d30-eb36-4267-8ee5-5c9cc2f8af32
 +------------------+----------------+--------------------------------------+
 ```
 
-创建一个volume，指定volume type为high-iops-type，挂载到虚拟机中：
+下面我们创建一个volume验证其功能，我们创建时指定volume type为high-iops-type，并挂载到虚拟机中：
 
 ```bash
 cinder create --volume-type high-iops-type --display-name high-iops-test 1
@@ -324,7 +324,7 @@ SERVER_ID=1ea33417-b577-45cb-83a0-fc412e421811
 VOLUME_ID=bb2ccbfb-654a-473e-9f35-ae548c8e59e1
 nova volume-attach $SERVER_ID $VOLUME_ID
 ```
-查看libvirt xml文件，截取disk信息如下:
+查看libvirt xml文件，截取部分disk信息如下:
 
 ```xml
 <disk type='network' device='disk'>
@@ -348,18 +348,19 @@ nova volume-attach $SERVER_ID $VOLUME_ID
       <address type='pci' domain='0x0000' bus='0x00' slot='0x08' function='0x0'/>
     </disk>
 ```
-可见在iotune中对读写ipos的控制。
 
-以上总计了Openstack Cinder的Qos的控制，接下来将介绍Nova的Qos控制。
+由xml文件可见在iotune中对读写IOPS的控制。
+
+以上总结了Openstack Cinder的QoS的控制，接下来将介绍Nova实现机制。
 
 ## 3.Nova
 
-Nova是Openstack的核心，提供计算服务，其功能类似AWS EC2。官方描述为:
+Nova是Openstack最核心的服务，提供计算服务，其功能类似AWS EC2。官方描述为:
 
 >Nova is an OpenStack project designed to provide power massively scalable, on demand, self service access to compute resources.
 >
 
-Nova虽然没有直接的方式对QoS质量进行控制，但我们可以通过主机集合(Host Aggregate)实现，比如我们有两个计算节点node-1，node-2，配置ssd磁盘，我们创建对应的主机集合并把两个节点加入到该主机集合中:
+Nova虽然没有直接方式对QoS质量进行控制，但我们可以通过主机集合(Host Aggregate)实现，比如我们有两个计算节点node-1，node-2，配置SSD磁盘，我们创建对应的主机集合并把两个节点加入到该主机集合中:
 
 ```
 nova aggregate-create ssd nova
@@ -396,9 +397,9 @@ $ nova flavor-show ssd.large
 +----------------------------+-------------------+
 ```
 
-此时当用户指定ssd.large flavor时，调度器将筛选具有ssd=true标签的计算节点，即node-1和node-2。
+此时当用户指定ssd.large flavor时，调度器将筛选具有ssd=true标签的计算节点，其余不满足条件的主机将被过滤掉, 最后在node-1和node-2中选取作为虚拟机的宿主机。
 
-同样地，Nova可通过flavor的extra spec实现Qos数量控制,以下参考官方文档-[compute flavors](http://docs.openstack.org/admin-guide/compute-flavors.html)：
+同样地，Nova可通过flavor的Extra Specs实现QoS量化控制,以下内容直接参考官方文档-[compute flavors](http://docs.openstack.org/admin-guide/compute-flavors.html)：
 
 比如限制IO最大读写速率为10MB/s:
 
@@ -433,7 +434,7 @@ openstack flavor set FLAVOR-NAME \
     --property quota:disk_write_bytes_sec=10485760
 ```
 
-另外，除了QoS控制，利用Flavor的extra specs，还可以自定义CPU拓扑:
+另外，除了QoS控制，Flavor的强大之处远不止这些，还支持用户自定义CPU拓扑:
 
 ```bash
 openstack flavor set FLAVOR-NAME \
@@ -456,13 +457,13 @@ openstack flavor set FLAVOR-NAME \
 
 ## 4.Swift
 
-Openstack Swift提供对象存储服务，实现类似AWS S3以及Ceph RGW，Swift可以通过配置不同的Storage Policies来实现不同性能的后端存储。具体可参看官方文档[Stroage Policie](http://docs.openstack.org/developer/swift/overview_policies.html#configure-policy).
+Openstack Swift提供对象存储服务，功能类似AWS S3以及Ceph RGW，Swift可以通过配置不同的Storage Policies来实现不同性能的后端存储。具体可参看官方文档[Stroage Policie](http://docs.openstack.org/developer/swift/overview_policies.html#configure-policy).
 
 ## 5.Neutron
 
 Neutron是OpenStack项目中负责提供网络服务的组件，它基于软件定义网络（SDN）的思想，实现了网络虚拟化的资源管理。Neutron支持对虚拟网卡进行带宽流量限制，主要通过QoS Policy实现，需要在neutron server端配置项service_plugins中开启qos插件，参考[Neutron QoS](http://docs.openstack.org/mitaka/networking-guide/adv-config-qos.html)。
 
-以下主要参考官方文档，首先创建一个Qos Policy:
+以下内容主要参考官方文档实例。首先创建一个Qos Policy:
 
 ```bash
 neutron qos-policy-create bw-limiter
@@ -475,7 +476,7 @@ neutron qos-bandwidth-limit-rule-create bw-limiter --max-kbps 3000 \
   --max-burst-kbps 300
 ```
 
-通过neutron port-list找到需要限制带宽的端口（网卡):
+通过neutron port-list找到需要限制带宽的端口（虚拟网卡):
 
 ```bash
 $ neutron port-list
@@ -509,11 +510,11 @@ neutron port-create private --qos-policy-id bw-limiter
 
 ## 总结
 
-本文详细介绍了Openstack基础服务的QoS控制，包括质量控制和数量控制，涉及的内容包括:
+本文详细介绍了Openstack基础服务的QoS控制，包括质量控制和量化控制，涉及的内容包括:
 
-1. Ceph通过crush map和rule选择不同性能的后端存储设备
+1. Ceph通过crush map和ruleset选取不同性能的后端存储设备
 2. Cinder支持多后端存储，Volume type绑定具体的后端从而实现不同性能的后端选择，并且可以自定义QoS实现数据卷的IO读写限制。
-3. Nova可以通过Host Aggregate的Metadata以及Flavor Extra Specs控制调度器选取符合某些特性的（比如SSD）计算节点，并且可以通过Flavor Extra Specs实现虚拟机的IO读写限制。
+3. Nova可以通过Host Aggregate的Metadata以及Flavor Extra Specs控制调度器选取符合某些特性的（比如SSD）计算节点，通过Flavor Extra Specs实现虚拟机的IO读写限制。
 4. Swift 支持多Policy，通过Storage Policies可以实现不同性能的后端存储设备。
 5. Neutron通过Qos Policy完成对虚拟网卡的带宽限制。
 
