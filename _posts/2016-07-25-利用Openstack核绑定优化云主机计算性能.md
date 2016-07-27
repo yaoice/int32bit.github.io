@@ -1,6 +1,6 @@
 ---
 layout: post
-title: Openstack核绑定优化云主机计算性能
+title: 利用Openstack核绑定优化云主机计算性能
 subtitle: 介绍cpu pinning功能
 catalog: true
 tags: 
