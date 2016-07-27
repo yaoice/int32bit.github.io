@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 深入理解Openstack核绑定功能
+title: Openstack核绑定优化云主机计算性能
 subtitle: 介绍cpu pinning功能
 catalog: true
 tags: 
@@ -15,12 +15,10 @@ tags:
 * NUMA: Non-Uniform Memory Access, 参考[NUMA维基百科](https://en.wikipedia.org/wiki/Non-uniform_memory_access) 。
 * CPU pinning: CPU绑定
 * SMT: Simultaneous Multithreading-based, 同步多线程技术，一种在一个CPU 的时钟周期内能够执行来自多个线程的指令的硬件多线程技术。本质上，同步多线程是一种将线程级并行处理(多CPU)转化为指令级并行处理(同一CPU)的方法。
-* hz: Host aggregates
-* az: Availability zones
 
 ## 1. 概述
 
-Openstack从K版本开始不仅支持自定义CPU拓扑（socket、core、threads等），还支持CPU pinning功能，即CPU核绑定，能够使虚拟机的vCPU固定绑定到宿主机的指定pCPU上，在整个运行期间，不会发生浮动。这能够减少由于CPU切换开销带来的性能损耗。但是Openstack并不支持用户显式的将一个vCPU绑定到某一pCPU上，Openstack不会暴露给用户物理CPU拓扑信息；它的使用只是由用户指定绑定选项dedicated，并制定policy，由nova来通过一系列调度具体选择绑定某个vCPU到某一pCPU上。Openstack还支持设置threads policy，利用宿主机的SMT特性进一步优化宿主机的性能。
+Openstack从K版本开始不仅支持了自定义CPU拓扑功能，比如设置socket、core、threads等，还支持CPU pinning功能，即CPU核绑定，甚至能够使虚拟机独占物理CPU，虚拟机的vCPU能够固定绑定到宿主机的指定pCPU上，在整个运行期间，不会发生CPU浮动，减少CPU切换开销，提高虚拟机的计算性能。Openstack并不允许用户显式的将一个vCPU绑定到某一pCPU上，这是由于这么做会暴露用户物理CPU拓扑信息，这有悖于IaaS的设计原则。除此之外，Openstack还支持设置threads policy，能够利用宿主机的SMT特性进一步优化宿主机的性能。
 
 接下来本文将详细介绍如何实现Openstack虚拟机的CPU核绑定。
 
@@ -28,7 +26,9 @@ Openstack从K版本开始不仅支持自定义CPU拓扑（socket、core、thread
 
 ### 2.1 规划CPU和内存
 
-在配置之前，首先需要规划计算节点的CPU，哪些CPU用于虚拟机，哪些CPU为宿主机预留，为了合理规划，还需要考虑宿主机CPU的NUMA架构，通过以下命令查看CPU信息:
+在配置之前，首先需要规划计算节点的CPU，哪些CPU分配给虚拟机，哪些CPU为宿主机进程预留，为了性能进一步优化，还可能需要考虑宿主机CPU的NUMA架构。
+
+在Linux环境下可以通过以下命令查看物理CPU信息:
 
 ```
 $ lscpu
@@ -56,17 +56,20 @@ L3 cache:              25600K
 NUMA node0 CPU(s):     0,2,4,6,8,10,12,14,16,18,20,22,24,26,28,30,32,34,36,38
 NUMA node1 CPU(s):     1,3,5,7,9,11,13,15,17,19,21,23,25,27,29,31,33,35,37,39
 ```
+
 由以上信息可知，该宿主机一共两个CPU，每个CPU 10核，每个核可以开启两个超线程，即一共有40个逻辑CPU，其中包括两个NUMA node，node0包括0，2，4，...,38，node1包括1,3,5,...,39。
 
-预留CPU个数和内存需要和实际情况调节，本文预留4个逻辑CPU(1-3)以及512MB内存给宿主机，剩下的作为虚拟机使用。CPU通过`vcpu_pin_set`配置项设定，语法包括以下3种格式:
+预留CPU个数和内存需要根据实际情况调整，比如若计算节点和存储节点融合，需要预留更多的CPU来保证存储服务的性能。本文测试环境预留了4个逻辑CPU(1-3)和512MB物理内存给宿主机，剩下的资源分配给虚拟机使用。
+
+分配cpuset给虚拟机需要调整计算节点的`vcpu_pin_set`配置项，支持以下三种语法格式:
 
 * 1,2,3 # 指定CPU号，逗号隔开。
 * 2-15, 18-31 # 使用-表示连续CPU序列，使用逗号分隔。
 * ^0,^1,^2,^3 # 使用`^`表示排除的CPU号，剩下的全部作为虚拟机使用。
 
-以上格式可以组合使用。
+以上三种语法格式可以组合使用。
 
-在compute节点nova配置如下:
+在compute节点nova参考配置如下:
 
 ```
 # /etc/nova/nova.conf
@@ -75,7 +78,8 @@ vcpu_pin_set=^0,^1,^2,^3
 reserved_host_memory_mb=512
 ...
 ```
-配置完需要重启nova-compute服务:
+
+配置更新需要重启nova-compute服务:
 
 ```bash
 systemctl restart openstack-nova-compute
@@ -83,7 +87,7 @@ systemctl restart openstack-nova-compute
 
 ### 2.2 调度配置
 
-在nova-scheduler节点上，需要配置默认filter，指定`AggregateInstanceExtraSpecFilter`和`NUMATopologyFilter`：
+在nova-scheduler节点上，需要配置默认filter，必须包含`AggregateInstanceExtraSpecFilter`和`NUMATopologyFilter`：
 
 ```
 # /etc/nova/nova.conf
@@ -103,24 +107,24 @@ systemctl restart openstack-nova-scheduler
 
 Host aggregate是compute host的集合，同一个主机集合的所有计算节点通常具有一组相同的特性，这些特性通过关联metadata来描述，比如高速网卡、GPU、SSD存储、Qos等。nova-scheduler能够过滤不满足某些特性的主机，从而只选择只具备某些特性的主机，比如只选择配置ssd的主机或者只选择具有GPU加速的主机等，这和[YARN的Label based scheduling算法](http://doc.mapr.com/display/MapR/Label-based+Scheduling+for+YARN+Applications)原理是一样的，差别仅仅是一个称为metadata，一个称为label。通过基于label的调度算法，充分考虑了异构的资源分布，能够提高资源利用率和最大吞吐量。
 
-nova中创建主机集合：
+Openstack需要首先创建主机集合，然后通过主机集合的metadata描述该集合的主机具有的特性，nova创建主机集合语法为：
 
-```
+```bash
 nova aggregate-create int32bit-hz int32bit-az
 ```
 
-其中`int32bit-az`是主机集合名称，`int32bit-az`是Availability zones，可以为空。Availability zones和host aggregates都是region和cell基础上的进一步划分。，其中az用户可见，用户创建云主机时可以指定az，而hz对于用户是不可见的，用户不能直接指定hz，而只能通过选择具有某种特性的flavor，从而间接选择具有该特性的hz。az和hz均是将计算集群划分为多个逻辑组，而与OpenStack实际部署情况无关，管理员可以通过nova API管理hz。
+其中`int32bit-az`是主机集合名称，`int32bit-az`是Availability zones，可以为空。Availability zones和host aggregates都是region和cell基础上的进一步划分。，其中Availability zones用户可见，用户创建云主机时可以指定Availability zones，而Host aggregates对于用户是不可见的，用户不能直接指定Host aggregates，而只能通过选择具有某种特性的flavor，从而间接选择具有该特性的Host aggregates。Availability zones和Host aggregates均是将计算集群划分为多个逻辑组，而与OpenStack实际部署情况无关，管理员可以通过nova API管理Host aggregates。
 
-*注意：* nova API不支持创建和删除za，但可以通过创建hz指定az的方式间接创建az。
+*注意：* nova API不支持创建和删除za，但可以通过创建Host aggregates指定Availability zones的方式间接创建Availability zones。
 
-总结hz和az的区别：
+总结Host aggregates和Availability zones的区别：
 
-* Availability zone通过逻辑划分提供某种形式上的物理隔离，保证不同az之间具有某些特性上的冗余性，比如供电、网络设备等。（另外region是真正物理上的划分）
+* Availability zone通过逻辑划分提供某种形式上的物理隔离，保证不同Availability zones之间具有某些特性上的冗余性，比如供电、网络设备等。（另外region是真正物理上的划分）
 * Host aggregate则指一组拥有关联metadata的计算节点，metadata中描述了该组计算节点所拥有的特性，比如高速网卡、GPU、SSD存储、属于特定租户、Qos等。
-* 一个az可以包含多个host aggregates，一个host aggregates只能属于一个az，一个host可以属于多个host aggregates，但只能属于一个az。
-AZ对于用户可见，而Host aggregate对于用户并不可见；用户通过选择具有某种特性的flavor，从而间接选择具有该特性的host aggregate。
+* 一个Availability zones可以包含多个host aggregates，一个host aggregates只能属于一个Availability zones，一个host可以属于多个host aggregates，但只能属于一个Availability zones。
+Availability zones对于用户可见，而Host aggregate对于用户并不可见；用户通过选择具有某种特性的flavor，从而间接选择具有该特性的host aggregate。
 
-查看az列表:
+查看Availability zones列表:
 
 ```
 $ nova availability-zone-list
