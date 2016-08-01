@@ -7,7 +7,7 @@ tags:
      - Openstack
 ---
 
-## 1. 基本知识
+## 1. 基础知识
 
 大多数Openstack新手都很疑惑一个问题，为什么Openstack只能上传qcow2、raw格式镜像，而不是我们装系统的ISO格式镜像。其实Openstack原生支持ISO镜像格式，只是使用方法和直接使用qcow2、raw等格式会有点不同，造成差异的原因是ISO镜像和其它镜像的不同。
 
@@ -330,7 +330,7 @@ nova boot --flavor $FLAVOR_ID \
 * 目前glance不支持直接从volume中创建image，但可以从云主机instance中创建，可以通过这种方式永久保存该系统到glance中,这相当于对云主机打快照。
 * 也可以导出volume到本地，然后手动上传到glance中。
 
-## Boot from PXE
+## 4. Boot from PXE
 
 很多人可能会问，Openstack是否支持从PXE启动，即网络启动方式，遗憾的是这个bp从2013年开始提出，到现在也没有实现，[这里是bp地址](https://blueprints.launchpad.net/nova/+spec/libvirt-empty-vm-boot-pxe)。但目前有解决方案:
 
