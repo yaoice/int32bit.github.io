@@ -251,7 +251,7 @@ nova volume-detach 78ae95b1-ef47-4391-bb6f-a020df47ebbe 739bfe68-052a-4b6e-bfb0-
 
 ### 3.2 上传镜像
 
-仍然以ubuntu 14.04为例，首先需要从官方下载ISO镜像并上传到glance中:
+以ubuntu 16.04为例，首先需要从官方下载ISO镜像并上传到glance中:
 
 ```bash
 glance image-create \
@@ -330,10 +330,33 @@ nova boot --flavor $FLAVOR_ID \
 * 目前glance不支持直接从volume中创建image，但可以从云主机instance中创建，可以通过这种方式永久保存该系统到glance中,这相当于对云主机打快照。
 * 也可以导出volume到本地，然后手动上传到glance中。
 
+## Boot from PXE
+
+很多人可能会问，Openstack是否支持从PXE启动，即网络启动方式，遗憾的是这个bp从2013年开始提出，到现在也没有实现，[这里是bp地址](https://blueprints.launchpad.net/nova/+spec/libvirt-empty-vm-boot-pxe)。但目前有解决方案:
+
+* 在bootloader上安装ipxe,然后上传到glance镜像中，这种方式有点麻烦，排除。
+* 在xml文件中os node增加network启动项:
+
+```xml
+<os>
+    <type arch='x86_64' machine='pc-i440fx-rhel7.1.0'>hvm</type>
+    <boot dev='hd'/>
+    <boot dev='network'/>
+    <smbios mode='sysinfo'/>
+  </os>
+```
+
+以上可以直接通过virsh edit命令修改，然后重启，使用vnc查看:
+
+![boot from pxe](/img/posts/Opentack使用ISO镜像启动云主机/7.png)
+
+我们若hd启动失败，则会尝试从pxe启动，只是我们pxe没有部署，因此也启动失败了。
+
+以上是临时解决办法，若需要永久生效，需要修改nova源码了, 最简单的patch为:
+
+![patch pxe](/img/posts/Opentack使用ISO镜像启动云主机/8.png)
+
 ## 参考文献
 
 1. [Launch an instance from a volume](http://docs.openstack.org/user-guide/cli_nova_launch_instance_from_volume.html)
 2. [ubuntu doc](http://www.ubuntu.com/)
-
-
-
