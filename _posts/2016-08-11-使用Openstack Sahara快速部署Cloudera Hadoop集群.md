@@ -1,4 +1,5 @@
 ---
+layout: post
 title: 使用Openstack Sahara快速部署Cloudera Hadoop集群
 catalog: true
 tags: 
