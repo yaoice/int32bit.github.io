@@ -64,7 +64,11 @@ OOZIE_SERVER
 YARN_RESOURCEMANAGER
 HDFS_SECONDARYNAMENODE
 HDFS_NAMENODE
+```
+
 定义cdh-slavev node group 模板，运行的进程包括：
+
+```
 HDFS_DATANODE
 YARN_NODEMANAGER
 ```
@@ -72,15 +76,20 @@ YARN_NODEMANAGER
 关于资源配置，master节点要求至少需要8GB RAM，否则后面cloudera-manager起不来，所有的slave节点配置一个volume，至少50GB，设置太小后面Cloudera-manager老是报警。
 
 创建node group模板，建议直接使用dashborad，比较直观，创建流程，以cdh-master为例：
+
 （1） 选择插件类型
 
 ![](/img/posts/使用Openstack Sahara快速部署Cloudera Hadoop集群/1.png)
 
 如图，以上设置Plugin Name为Cloudera Plugin,Version为5.4.0。
+
 （2） 资源配置
+
 ![](/img/posts/使用Openstack Sahara快速部署Cloudera Hadoop集群/2.png)
 如图，我们选择了自己flavor，并且指定volume为50GB，注意务必设置Floating IP Pool。
+
 （3）服务配置
+
 勾上以下服务：
 
 ```
@@ -93,6 +102,7 @@ HDFS_NAMENODE
 ```
 
 （4）Hadoop配置
+
 可以根据需求进行自定义Hadoop的一些参数配置，通常默认即可。
 根据相同的步骤，创建cdh-slave node group模板，服务配置包括：
 
@@ -104,7 +114,9 @@ YARN_NODEMANAGER
 另外需要注意`dfs_datanode_du_reserved`参数，这个参数表示预留给宿主机的磁盘空间，默认为10GB，即如果volume设置大小为50GB，在HDFS看到的应该是40GB。
 创建完成后，结果如图：
 ![](/img/posts/使用Openstack Sahara快速部署Cloudera Hadoop集群/3.png)
-3.2 创建集群模板
+
+### 3.2 创建集群模板
+
 以上我们创建了两个node group模板，分别为cdh-master和cdh-slave，本次测试我们部署包含4个节点的Cloudera集群，包括1个master节点和3个slave节点，由以上可知，master节点部署了大多数的管理服务，而slave节点部署了datanode和nodemanager服务。
 
 ```
@@ -150,6 +162,7 @@ cdh-slave x 3
 若本地没有对应服务的parcels会自动从互联网下载到本地。
 部署成功后，如图：
 ![](/img/posts/使用Openstack Sahara快速部署Cloudera Hadoop集群/13.png)
+
 ### 5.2 部署Hbase
 
 和部署Zookeeper类似，进入服务列表后，选择Hbase服务，master节点部署Hbase Master，其他节点部署Hbase RegionServer，如图：
