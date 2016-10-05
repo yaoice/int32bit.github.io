@@ -3,6 +3,7 @@ var weibo = "http://weibo.com/316378881";
 var github = "https://github.com/int32bit";
 var zhihu = "https://www.zhihu.com/people/int32bit";
 var twitter = "https://twitter.com/int32bit";
+
 function do_help(args)
 {
     var help = "Keyboard Shortcuts: <br/>";

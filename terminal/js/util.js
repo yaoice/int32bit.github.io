@@ -1,16 +1,17 @@
-String.prototype.endswith = function(suffix) {
-    return this.indexOf(suffix, this.length - suffix.length) !== -1;
-};
 String.prototype.startswith = function (prefix) {
         return this.indexOf(prefix) == 0;
 }
-String.prototype.repeat = function( num )
-{
+
+String.prototype.endswith = function(suffix) {
+    return this.indexOf(suffix, this.length - suffix.length) !== -1;
+};
+
+
+String.prototype.repeat = function(num) {
     return new Array( num + 1 ).join( this );
 }
 
-String.prototype.trim = function() 
-{
+String.prototype.trim = function() {
     return this.replace(/^\s+|\s+$/g, '');
 }
 
@@ -29,7 +30,7 @@ function getKey(ev)
 
 function showDate(obj)
 {
-	function converse(number) {
+	function padding(number) {
 
 		if (number < 10)
 			return "0" + number;
@@ -41,7 +42,7 @@ function showDate(obj)
 		var date = now.toDateString();
 		var len = date.length;
 		date = date.slice(0, len - 4); /* 去掉年份 */
-		var time = converse(now.getHours()) +  ":" + converse(now.getMinutes()) + ":" + converse(now.getSeconds());
+		var time = padding(now.getHours()) +  ":" + padding(now.getMinutes()) + ":" + padding(now.getSeconds());
 		//var time = now.toLocaleTimeString();
 		obj.html(date + ",&nbsp;&nbsp;" + time);
 	}, 1000);

@@ -166,12 +166,14 @@ function register_commands(prefix)
 {
     var prefix = prefix || "do_";
     var prefix_len = prefix.length;
-    var keys = Object.keys(window).filter(function (e) { return e.startswith(prefix)});
-    var discovored_commands = {};
+    var keys = Object.keys(window).filter(function (e) {
+        return e.startswith(prefix); // String.startswith() is a custom function, import util.js first.
+    }); 
+    var discovered_commands = {};
     for (var k in keys) {
         var key = keys[k];
         var stripped_key = key.slice(prefix_len);
-        discovored_commands[stripped_key] = window[key];
+        discovered_commands[stripped_key] = window[key];
     }
-    return discovored_commands;
+    return discovered_commands;
 }
