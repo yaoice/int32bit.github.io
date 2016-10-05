@@ -1,0 +1,14 @@
+---
+layout: null
+---
+[
+{% for post in site.posts %}
+    {
+        "title": "{{ post.title }}",
+        "date": "{{post.date}}",
+        "url": "{{ post.url }}",
+        "size": "{{ post.content | number_of_words }}",
+        "author": "{{ post.author }}"
+    }{% if forloop.last == false %},{% endif %}
+{% endfor %}
+]
