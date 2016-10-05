@@ -15,10 +15,8 @@ body {
 	font-family: courier,fixed,swiss,monospace,sans-serif;
 	font-size: 14px;
 	color: #f0f0f0;
-	/*
-	font-family:ubuntu;
-	*/
 }
+
 /*
 @font-face
 {
@@ -26,6 +24,7 @@ body {
 	src:url("ubuntu.ttf");
 }
 */
+
 .top-bar
 {
 	position:fixed;
@@ -38,6 +37,7 @@ body {
 	font-size:20px;
 	font-weight:bold;
 }
+
 #top-bar-date
 {
 	/*
@@ -52,12 +52,14 @@ body {
 	left:40%;
 	*/
 }
+
 #username
 {
 	display:inline;
 	text-align:right;
 	float:right;
 }
+
 #show-activities
 {
 	position:absolute;
@@ -153,11 +155,13 @@ body {
 	display:inline;
 	margin: 20px;
 }
+
 .terminal-toolbar ul li:hover
 {
-	background: #66ccff;
+	background: #666;
 	font-weight: bold;
 }
+
 .terminal-body
 {
 	background:#000;
@@ -223,6 +227,7 @@ body {
 	width:100%;
 	z-index:99;
 }
+
 #dock
 {
 	position:relative;
@@ -238,10 +243,12 @@ body {
 	display:block;
 	z-index:100;
 }
+
 #dock img
 {
 	width:64px;
 }
+
 #dock img:hover
 {
 	-webkit-transform:scale(1.5);

@@ -114,8 +114,13 @@ function paddingLeft(str, len, c)
     return c.repeat(diff) + str;
 }
 
+function wrap_url(url, text)
+{
+    var text = text || url;
+    return "<a href='" +  url + "' target='blank' class='dir'>" + text + "</a>";
+}
 function open_url(url)
 {
     var newWindow = window.open(url, "_blank");
-    return url;
+    return wrap_url(url);
 }

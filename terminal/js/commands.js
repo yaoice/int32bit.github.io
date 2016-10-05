@@ -1,4 +1,8 @@
 var all_posts = get_posts();
+var weibo = "http://weibo.com/316378881";
+var github = "https://github.com/int32bit";
+var zhihu = "https://www.zhihu.com/people/int32bit";
+var twitter = "https://twitter.com/int32bit";
 function do_help(args)
 {
     var help = "Keyboard Shortcuts: <br/>";
@@ -23,23 +27,20 @@ function do_pwd(args)
 
 function do_top(args)
 {
-    return do_ls();
+    return do_ls(args, 10);
 }
 
-function do_ls(args)
+function do_ls(args, count)
 {
     if ($.inArray("-l", args) != -1) {
         return do_ll(args);
     }
-    var all = false;
-    if ($.inArray("-a", args) != -1) {
-        all = true;
-    }
     var posts = all_posts;
     var output = "";
+    var count = count || 100;
     for (var i in posts) {
         output += "<a href='" + posts[i].url + "' class='dir' target='blank'>" + posts[i].title + "</a><br/>";
-        if (! all && i > 8)
+        if (i >= count - 1)
             break;
     }
     return output;
@@ -69,12 +70,29 @@ function do_ll(args)
 
 function do_cd(args)
 {
-    return "Not Implemented.";
+    return "";
 }
 
 function do_about(args)
 {
-    return "fgp";
+    var output = "";
+    output += "author: int32bit<br/>";
+    output += "license: " + wrap_url("/LICENSE", "Apache 2 license") + "<br/>";
+    output += "version: " + "1.0-beta" + "<br/>";
+    output += "update: " + "2016-10-03" + "<br/>";
+    output += "版权所有2016 int32bit. 保留所有权利。";
+    return output;
+}
+function do_info(args)
+{
+    var output = "";
+    output += "name: " + "int32bit" + "<br/>";
+    output += "weibo: " + wrap_url(weibo) + "<br/>";
+    output += "github: " + wrap_url(github) + "<br/>";
+    output += "zhihu: " + wrap_url(zhihu) + "<br/>";
+    output += "twitter: " + wrap_url(twitter) + "<br/>";
+    output += "wechat: " + wrap_url("../img/wechat.png", "int32bit");
+    return output;
 }
 
 function do_whoami(args)
@@ -146,22 +164,22 @@ function do_eval(args)
 
 function do_weibo(args)
 {
-    return open_url("http://weibo.com/316378881");
+    return open_url(weibo);
 }
 
 function do_github(args)
 {
-    return open_url("https://github.com/int32bit");
+    return open_url(github);
 }
 
 function do_zhihu(args)
 {
-    return open_url("https://www.zhihu.com/people/int32bit");
+    return open_url(zhihu);
 }
 
 function do_twitter(args)
 {
-    return open_url("https://twitter.com/int32bit");
+    return open_url(twitter);
 }
 
 function do_exit(args)
@@ -180,6 +198,16 @@ function do_background(args)
 {
     changeBackground();
     return "";
+}
+
+function do_bg(args)
+{
+    return do_background();
+}
+
+function do_phone(args)
+{
+    return "1304106****";
 }
 
 function do_dirs(args)
