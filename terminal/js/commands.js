@@ -77,11 +77,11 @@ function do_cd(args)
 function do_about(args)
 {
     var output = "";
-    output += "author: int32bit<br/>";
-    output += "license: " + wrap_url("/LICENSE", "Apache 2 license") + "<br/>";
-    output += "version: " + "1.0-beta" + "<br/>";
-    output += "update: " + "2016-10-03" + "<br/>";
-    output += "版权所有2016 int32bit. 保留所有权利。";
+    output += "Author: int32bit<br/>";
+    output += "License: " + wrap_url("/LICENSE", "Apache 2 license") + "<br/>";
+    output += "Version: " + "1.0-beta" + "<br/>";
+    output += "Last update: " + "2016-10-03" + "<br/>";
+    output += "版权所有&copy;2016 int32bit. 保留所有权利。";
     return output;
 }
 function do_info(args)
