@@ -1,11 +1,11 @@
 ---
 layout: post
-title: 手动部署docker-swarm集群
+title: 手动部署docker swarm集群
 catalog: true
 tags:
-     - docker
+    - Docker
+    - Swarm
 ---
-# 手动部署docker swarm集群
 
 ## 前言
 

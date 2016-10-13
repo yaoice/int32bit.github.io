@@ -4,8 +4,7 @@ title: Openstack使用stevedore实现动态加载插件
 subtitle: Openstack源码分析系列文章
 catalog: true
 tags:
-     - openstack
-     - 源码分析
+     - Openstack
 ---
 
 

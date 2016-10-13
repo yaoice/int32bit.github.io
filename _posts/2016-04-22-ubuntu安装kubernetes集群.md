@@ -4,11 +4,10 @@ title: ubuntu安装kubernetes集群
 subtitle: 记录第一次实践部署k8s集群
 catalog: true
 tags:
-     - docker
-     - k8s
-     - ubuntu
+     - Docker
+     - kubernetes
+     - Ubuntu
 ---
-# ubuntu安装kubernetes集群
 
 ## 一、安装环境
 

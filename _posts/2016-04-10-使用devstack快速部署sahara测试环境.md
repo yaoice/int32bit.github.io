@@ -4,10 +4,8 @@ title: 使用devstack快速部署sahara测试环境
 subtitle: 一步步实践，无坑分享
 catalog: true
 tag:
-    - sahara
-    - openstack
-    - 云计算
-    - hadoop
+    - Openstack
+    - Hadoop
 ---
 
 ## 1.申请公有云主机和云硬盘

@@ -2,7 +2,7 @@
 layout: post
 title: 制作windows puppet镜像
 comments: true
-tags: [puppet, kvm, 虚拟化, windows]
+tags: [Puppet, KVM]
 category: 虚拟化
 ---
 

@@ -1,7 +1,7 @@
 ---
 layout: post 
 title: Java 中的并发
-tags: [java, 并发]
+tags: [Java]
 category: 程序语言
 comments: true
 ---

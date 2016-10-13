@@ -4,7 +4,7 @@ title: 手动制作Openstack镜像
 subtitle: 支持密码注入、磁盘自动扩容、动态修改密码功能
 catalog: true
 tags:
-     - openstack
+     - Openstack
 ---
 本文以制作`Centos7.2`镜像为例，详细介绍制作镜像的步骤，该镜像上传到Openstack Glance中，相对于官方镜像，增加如下几个功能：
 

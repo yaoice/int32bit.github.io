@@ -4,7 +4,6 @@ title: 深入理解Openstack QoS控制实现与实践
 catalog: true
 tags:
      - Openstack
-     - QoS
 ---
 
 ## 0.什么是QoS

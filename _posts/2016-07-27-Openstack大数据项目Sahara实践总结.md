@@ -5,7 +5,7 @@ catalog: true
 tags:
      - Openstack
      - Sahara
-     - BigData
+     - 大数据
 ---
 
 ## 1. Sahara 简介

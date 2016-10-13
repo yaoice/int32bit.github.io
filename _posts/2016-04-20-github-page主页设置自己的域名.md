@@ -1,11 +1,11 @@
 ---
 layout: post
-title: github-page主页设置自己的域名
+title: 自定义github-page域名
 catalog: true
 tags:
-     - DNS
      - Linux
 ---
+
 ## 1.申请域名
 
 想好自己的域名后向提供商购买域名，国外比较著名的比如[godaddy](http://godaddy.com)以及[iwantmyname](https://iwantmyname.com)，国内的[万网](https://wanwang.aliyun.com/)和[新网](http://www.xinnet.com/)，我选择了国内的万网，因为比较了下，比较便宜！另外一直想申请`xxx.sh`的域名，可是好像只有iwantmname.com提供，并且非常贵！

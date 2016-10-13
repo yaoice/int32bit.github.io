@@ -3,10 +3,8 @@ layout: post
 title: 使用ubuntu快速部署ceph集群
 catalog: true
 tag:
-    - ubuntu
-    - ceph
-    - 云计算
-    - 分布式存储
+    - Ubuntu
+    - Ceph
 ---
 
 ## 一、安装环境

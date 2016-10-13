@@ -6,7 +6,6 @@ tags:
      - Docker
      - Harbor
      - Openstack
-     - Registry
 ---
 
 Docker Registry默认使用本地文件系统存储镜像文件，路径为`/var/lib/registry`。事实上Docker Registry支持多种存储后端，参考[官方文档](https://docs.docker.com/registry/configuration/)，支持的存储后端列表如下:
