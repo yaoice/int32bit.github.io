@@ -1,6 +1,6 @@
 ---
-layout: post
-title: 工具
+layout: page
+header-img: "img/computes-bg.jpg"
 ---
 
 1. [helloworld](/tools/helloworld)

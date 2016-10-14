@@ -13,7 +13,7 @@ body {
 }
 .term {
     font-family: courier,fixed,swiss,monospace,sans-serif;
-    font-size: 14px;
+    font-size: 18px;
     color: #f0f0f0;
     background: #000000;
     display: block;
@@ -21,14 +21,51 @@ body {
     padding: 0px;
     border:0px;
     margin: 0px;
+    height: 100%;
     top: 30px;
 }
-
 .termReverse {
     color: #000000;
     background: #00ff00;
 }
+
+#tips {
+    line-height: 80px; /* The same as div height */
+    width: 100%;
+    height: 100%;
+    top: 0%;
+    border: 0px;
+    margin: 0px;
+    padding: 0px;
+    background: #111;
+    color: white;
+    position: absolute;
+    z-index: 100;
+    font-size: 40px;
+    text-align: center;
+    vertical-align: bottom;
+}
+
+#tips-text {
+    display: table-cell;
+    position: absolute;
+    bottom: 0%;
+    vertical-align: bottom;
+    width: 100%;
+    text-align: center;
+}
+
 </style>
+
+<script src="/js/jquery.min.js"></script>
+<script type="text/javascript">
+$(document).ready(function() {
+    setTimeout(function(){
+        $("#tips").fadeOut(3000);
+    }, 2000);
+});
+</script>
+
 </head>
 	<body onload="start();">
         <div>
@@ -38,6 +75,11 @@ body {
             <script type="text/javascript" src="jslinux.js"></script>
         </div>
         </hr>
-        <div id="copyright">&copy; 2011-2015 Fabrice Bellard</div>
+        <div id='tips'>
+            <div id='tips-text'>
+                Waiting for booting...<br/>
+                &copy; 2011-2015 Fabrice Bellard
+            </div>
+        </div>
     </body>
 </html>
