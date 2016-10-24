@@ -9,7 +9,7 @@ tags:
 
 ## 1. 背景介绍
 
-众所周知Openstack是一个分布式系统，由分布在不同主机的各个服务组成来共同协同完成工作。以计算服务Nova为例，包括的基本组件为:
+众所周知Openstack是一个分布式系统，由分布在不同主机的各个服务组成来共同协同完成各项工作。以计算服务Nova为例，包括的基本组件为:
 
 * nova-api
 * nova-conductor
@@ -26,15 +26,15 @@ tags:
 * Heat: `heat service-list`
 * ...
 
-**注意由于Glance的`glance-api`和`glance-registry`都是HTTP服务，没有通过RPC服务，因此不存在服务状态，监控时只能通过HTTP心跳机制。**
+**注意由于Glance的`glance-api`和`glance-registry`都是HTTP服务，没有RPC服务(当然也不需要配置RabbitMQ)，因此不存在服务状态，监控时只能通过HTTP心跳机制。**
 
 下图为`nova service-list`结果：
 
 ![nova service-list截图](/img/posts/Openstack服务心跳机制与状态监控/nova_services.jpg)
 
-有时候我们明明服务都起来了，进程都是正常的，使用systemctl查看也是running状态，可是使用`nova service-list`查看服务却是down，此时需要了解Openstack服务的心跳机制和状态监控策略。
+有时候我们明明服务都起来了，进程都是正常的，使用systemctl查看也是`running`状态，可是使用`nova service-list`查看服务却是down，此时如果不了解Openstack服务的心跳机制和状态监控策略,排查问题将无从下手。
 
-接下来本文会议Nova组件为例从源码入手详细分析Nova的nova-compute服务心跳机制和状态监控，其它服务比如Cinder等原理也类似，有兴趣的可以自己研究。
+接下来本文会以Nova组件为例从源码入手详细分析Nova服务心跳机制和状态监控，其它服务比如Cinder等原理也类似，有兴趣的可以自己研究。
 
 ## 2. service相关配置
 
@@ -66,11 +66,11 @@ for more than service_down_time, then the compute node is considered down.
 
 注意：文档说明了`report_interval`一定要小于`service_down_time`，否则你60秒才发送一个心跳，而设置30秒没有心跳就认为服务down的话，显然服务将永远处于down状态。
 
-其实从配置项我们大致可以猜到服务状态监控的原理了，一定是基于心跳机制的，不过为了验证并且了解其实现原理，接下来还是从源码深入。
+其实从配置项我们大致可以猜到服务状态监控的原理了--基于心跳机制，不过为了验证并且深入了解其实现原理，接下来从源码分析入手。
 
 ## 3. Nova服务初始化
 
-我们知道所有的服务入口都是在根目录下的`setup.cfg`文件中的`entry_points`定义，nova-compute的服务入口为`nova/cmd/compute.py`，核心代码只有三行:
+我们知道所有的服务入口都是在根目录下的`setup.cfg`文件中的`entry_points`定义，比如nova-compute的服务入口为`nova/cmd/compute.py`，核心代码只有三行:
 
 ```python
 def main():
@@ -118,7 +118,7 @@ class Service(service.Service):
 
 从构造方法看并没有发现注册心跳的过程（根据直觉看，它应该是一个定时任务），其它方法都是针对服务的一些行为操作，诸如start、stop、kill、wait等，也没有发现有report的痕迹。
 
-还记得我们上一节分析的配置项吗，我们只需要在代码中查找`report_interval`和`service_down_time`的配置在哪里读就一定可以找到线索。
+还记得我们上一节分析的配置项吗? 我们只需要在代码中查找`report_interval`和`service_down_time`的配置在哪里读就可能找到线索。
 
 使用`ag`命令源码查找发现在`nova/servicegroup/api.py`读取这两个配置项。而从以上`Service`构造方法代码有一行内容为：
 
@@ -126,7 +126,7 @@ class Service(service.Service):
 self.servicegroup_api = servicegroup.API()
 ```
 
-这里已经完全确定一定和servicegroup有关。
+这里已经可以确定和servicegroup有关。
 
 找到`Service`类的`start`方法，看如何调用servicegroup的：
 
@@ -136,7 +136,7 @@ LOG.debug("Join ServiceGroup membership for this service %s",self.topic)
 self.servicegroup_api.join(self.host, self.topic, self)
 ```
 
-可见是调用了servicegroup的join方法，从这里已经确定service的心跳一定是在servicegroup的join方法注册的。下一节将开始分析servicegroup。
+可见是调用了servicegroup的join方法，从这里已经确定service的心跳是在servicegroup的join方法注册的。下一节将开始分析servicegroup。
 
 ## 4. Openstack服务心跳机制
 
@@ -183,7 +183,7 @@ def join(self, member, group, service=None):
         return self._driver.join(member, group, service)
 ```
 
-我们发现join方法调用的是driver的join方法，而从`_driver_name_class_mapping`看目前支持两种driver，二者都是基于数据库实现的，一个是使用DBDriver，从名字上看应该是使用传统的关系型数据库存储心跳，另一个是MemCachedDriver，使用MC存储数据库。构造方法读取了以上两个配置项，并根据配置文件加载驱动。由于我们一般直接使用关系型数据库，比如Mysql，因此我们只看DBDriver的实现即可。代码位于`nova/servicegroup/drivers/db.py`：
+我们发现join方法调用的是driver的join方法，而从`_driver_name_class_mapping`看目前支持两种driver，二者都是基于数据库实现的，一个是使用DBDriver，从名字上看应该是使用传统的关系型数据库存储心跳，另一个是MemCachedDriver，使用MC存储。构造方法读取了以上两个配置项，并根据配置文件加载驱动。由于我们一般使用关系型数据库，比如Mysql，因此我们只看DBDriver的实现即可。代码位于`nova/servicegroup/drivers/db.py`：
 
 ```python
 def join(self, member, group, service=None):
@@ -193,7 +193,7 @@ def join(self, member, group, service=None):
                                  api.INITIAL_REPORTING_DELAY, service)
 ```
 
-从代码中果然验证了join方法注册心跳的猜想，注意service.tg是`threadgroup.ThreadGroup()`实例，即线程组，`add_timer`即在线程组中添加定时人物，第一个参数为定时周期，第二个参数为需要定时执行的函数，后面的为该函数的参数。从代码中看出，执行定时任务的函数为`self._report_state`：
+从代码中果然验证了join方法注册心跳的猜想，注意service.tg是`threadgroup.ThreadGroup()`实例，即线程组，`add_timer`即在线程组中添加定时任务，第一个参数为定时周期，第二个参数为需要定时执行的函数，后面的为该函数的参数。从代码中看出，执行定时任务的函数为`self._report_state`：
 
 ```python
 def _report_state(self, service):
@@ -215,11 +215,11 @@ def _report_state(self, service):
 
 其中service是从数据库中取得的最新service数据，该函数只是仅仅把`report_count`加一，然后调用save方法保存到数据库中。这里需要注意的是，save方法每次都会记录更新的时间,在数据库的字段为`updated_at`。
 
-由此，我们终于彻底弄清楚了Openstack服务的心跳机制，本质就是每隔一段时间我往数据库更新`report_count`值，并记录最后更新时间。
+由此，我们终于彻底弄清楚了Openstack服务的心跳机制，本质就是每隔一段时间往数据库更新`report_count`值，并记录最后更新时间作为接收到的最新心跳时间戳。
 
 ## 5. 服务状态监控
 
-上一节中我们已经知道服务的心跳机制原理，这一节中我们分析服务是如何利用心跳判断服务状态的。首先我们从API的入口着手，代码一定在`nova/api`目录下，其中service相关的API在`nova/api/openstack/compute/services.py`下，我们查看`ServiceController`,其中`sersvice-list`方法实现在`_get_services_list`中实现，该方法又调用了`_get_service_detail`方法:
+上一节中我们已经知道服务的心跳机制原理，这一节中我们分析服务是如何利用心跳判断服务状态的。首先我们从API的入口着手，代码在`nova/api`目录下，其中service相关的API在`nova/api/openstack/compute/services.py`下，我们查看`ServiceController`,其中`nova sersvice-list`接口在`_get_services_list`方法实现，该方法又调用了`_get_service_detail`方法:
 
 ```python
 def _get_service_detail(self, svc, additional_fields):
@@ -270,7 +270,7 @@ def is_up(self, service_ref):
         return is_up
 ```
 
-我们分析下源码，首先获取`service`实例的最后更新时间，即最后心跳时间，然后计算最后心跳时间距离现在时间的间隔，如果小于等于`service_down_time`的值，则认为服务是up的，否则是down。比如假设我们设置的`report_interval`时间为10秒，正常的话检查最后心跳到当前时间一定小于10秒，不幸的是可能中间丢了2个心跳，那检查的最后心跳距离当前时间可能为20多秒，由于小于我们的`service_down_time`（假设为60秒)，因此还是认为服务是up的。如果连续丢掉超过6个心跳包，则服务就会返回down了。
+我们分析下源码，首先获取`service`实例的最后更新时间戳，即最后心跳时间，然后计算最后心跳时间距离现在时间的间隔，如果小于等于`service_down_time`的值，则认为服务是up的，否则是down。比如假设我们设置的`report_interval`时间为10秒，正常的话检查最后心跳到当前时间一定小于10秒，不幸的是可能中间丢了2个心跳，那检查的最后心跳距离当前时间可能为20多秒，由于小于我们的`service_down_time`（假设为60秒)，因此还是认为服务是up的。如果连续丢掉超过6个心跳包，则服务就会返回down了。
 
 至此，我们彻底明白了Openstack服务状态监控机制。
 
@@ -281,5 +281,8 @@ def is_up(self, service_ref):
 * 数据库访问错误导致心跳更新失败，这种情况看日志就能发现错误日志。
 * Rabbitmq连接失败，nova-compute不能直接访问数据库，更新时是通过RPC调用nova-conductor完成的，如果rabbitmq连接失败，RPC将无法执行，导致心跳发送失败。
 * nova-conductor故障，原因同上，不过这种情况概率很低，除非人为关闭了该服务。
-* 时间不同步。这种情况排查非常困难，我们指定数据更新是在nova-conductor组件完成的，而计算心跳间隔是在nova-api服务完成的，假如这两个服务所在的主机时间不同步，则将可能导致服务误判为down。对于多API节点部署时尤其容易出现这种情况，所有节点务必保证时间同步，NTP服务必须能够正常工作，否则将影响Openstack服务的心跳机制和状态监控。
+* 时间不同步。这种情况排查非常困难，因为你在日志中是发现不了任何错误信息的，我们知道数据库操作由nova-conductor组件完成的，而计算心跳间隔是在nova-api服务完成的，假如这两个服务所在的主机时间不同步，将可能导致服务误判为down。对于多API节点部署时尤其容易出现这种情况，所有节点务必保证时间同步，NTP服务必须能够正常工作，否则将影响Openstack服务的心跳机制和状态监控。
 
+## 7. 总结
+
+本文从源码入手分析了Openstack服务的心跳机制和状态监控，每个服务每隔10秒都会向数据库发送心跳包，根据downtime时间窗口内是否存在心跳判断服务的状态。其实这种方法效率是非常低的，并且当服务众多时，数据库的压力将会非常大，因此有人提出引入Zookeeper服务发现机制维护Openstack服务状态，参考[Services Heartbeat with ZooKeeper](https://wiki.openstack.org/wiki/NovaZooKeeperHeartbeat)。
