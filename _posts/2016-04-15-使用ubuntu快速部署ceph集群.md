@@ -9,7 +9,7 @@ tag:
 
 ## 一、安装环境
 
-本文主要根据官方文档使用ubuntu14.04安装ceph集群，并且简单熟悉其基本操作。整个集群包括一个admin节点（admin node,主机名为node0）和3个存储节点（主机名分别为node1，node2，node3），所有节点均安装ubuntu 14.04操作系统，除了admin节点，其余三个节点除了根磁盘，还额外配置一个磁盘作为单独的osd：
+本文主要根据官方文档使用ubuntu14.04部署ceph集群，并且简单介绍其基本操作。整个集群包括一个admin节点（admin node,主机名为node0）和3个存储节点（主机名分别为node1，node2，node3），所有节点均安装了ubuntu 14.04操作系统，除了admin节点，其余三个节点除了根磁盘，还额外配置一个磁盘作为单独的osd：
 
 ```bash
 lsblk
@@ -26,8 +26,9 @@ vda    253:0    0    20G  0 disk
 └─vda5 253:5    0  1022M  0 part [SWAP]
 vdb    253:16   0    50G  0 disk
 ```
-由于我们使用ustack的公有云申请的云主机，因此磁盘是虚拟的，根磁盘为vda，附加磁盘为vdb。
-所有主机均处于`192.168.0.0/24`这个网络,ip为：
+
+由于使用ustack公有云申请的云主机，因此磁盘是虚拟的，根磁盘为vda，第二块磁盘为vdb。
+所有主机在`192.168.0.0/24`这个网络,ip为：
 
 ```
 192.168.0.2     node0
@@ -35,6 +36,7 @@ vdb    253:16   0    50G  0 disk
 192.168.0.7     node2
 192.168.0.6     node3
 ```
+
 我们先设置一个mon节点，两个osd节点，后续我们再增加节点，其架构如图所示：
 
 ![集群架构图](/img/posts/使用ubuntu快速部署ceph集群/cluster-arch.png)
@@ -47,11 +49,12 @@ vdb    253:16   0    50G  0 disk
 
 ### 1.设置admin节点root免密码登录其他节点
 
-首先使用`ssh-keygen`生成密钥，位于`~/.ssh/id_rsa.pub`,分别拷贝`id_rsa.pub`文件到所有节点中，若没有设置root密码，可以先拷贝到管理员账号（安装操作系统时使用的用户，具有`sudo`权限）home目录，然后使用管理员账号操作：
+首先使用`ssh-keygen`生成密钥，位于`~/.ssh/id_rsa.pub`,拷贝`id_rsa.pub`文件到所有节点中，若没有设置root密码，可以先拷贝到管理员账号（安装操作系统时使用的用户，具有`sudo`权限）home目录，然后使用管理员账号操作：
 
 ```bash
 cat id_rsa.pub | sudo tee -a /root/.ssh/authorized_keys
 ```
+
 在node0节点分别测试，是否可以免密码登录其他节点：
 
 ```bash
