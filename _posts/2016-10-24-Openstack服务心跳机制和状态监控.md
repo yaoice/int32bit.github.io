@@ -49,7 +49,9 @@ service_opts = [
                help="""
 Number of seconds indicating how frequently the state of services on a
 given hypervisor is reported. Nova needs to know this to determine the
-overall health of the deployment.""")
+overall health of the deployment.
+""")
+
     cfg.IntOpt('service_down_time',
                default=60,
                help="""
@@ -58,6 +60,7 @@ Maximum time in seconds since last check-in for up service
 Each compute node periodically updates their database status based on the
 specified report interval. If the compute node hasn't updated the status
 for more than service_down_time, then the compute node is considered down.
+""")
 ... # 省略了其余代码
 ```
 
