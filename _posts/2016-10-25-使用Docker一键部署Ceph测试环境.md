@@ -15,12 +15,13 @@ Ceph是开源统一分布式存储系统，最初是Sage Weil在UCSC的PhD研究
 
 ```bash
 #!/bin/bash
+#!/bin/bash
 # start_ceph.sh
 # author: int32bit
-# date: 2016-04-22 
+# date: 2016-04-22
 
 MY_IP=$(docker run -t -i --network=host --rm alpine ip route get 8.8.8.8 | awk '{print $7}')
-CIDR=$(ip a | grep $MY_IP | awk '{print $2}')
+CIDR=$(docker run -t -i --rm --network=host alpine ip a | grep $MY_IP | awk '{print $2}')
 NETWORK_ADDR=$(docker run -t -i --rm alpine ipcalc $CIDR -n | cut -d '=' -f 2 | tr -d '\r' )
 PREFIX=$(docker run -t -i --rm alpine ipcalc $CIDR -p | cut -d '=' -f 2 | tr -d '\r')
 IMAGE=ceph/demo
