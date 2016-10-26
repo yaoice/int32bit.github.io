@@ -205,6 +205,7 @@ rbd snap protect pool-xx/server_uuid_disk@snapshot_name
 ```
 rbd clone pool-xx/server_uuid_disk@snapshot_name pool-yy/image_id
 ```
+
 ### 2.4 flatten rbd image
 
 相当于:
