@@ -130,6 +130,7 @@ openstack endpoint create --region RegionOne data-processing admin http://lb.103
 ```bash
 yum install openstack-sahara.noarch
 ```
+
 #### 2.1.4 Sahara配置
 
 修改配置文件`/etc/sahara/sahara.conf`，内容如下：
