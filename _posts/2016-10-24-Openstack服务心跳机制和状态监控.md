@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Openstack服务心跳机制和状态监控
-subtitle: Openstack源码解读系列
+subtitle: Openstack源码分析系列
 catalog: true
 tags:
      - Openstack

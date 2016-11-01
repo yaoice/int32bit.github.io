@@ -1,7 +1,7 @@
 ---
 layout: post
 title: Openstack使用Ceph存储后端创建虚拟机快照原理剖析
-subtitle: Openstack源码解读系列
+subtitle: Openstack源码分析系列
 catalog: true
 tags:
       - Openstack
