@@ -32,6 +32,8 @@ _BACKEND_MAPPING = {'sqlalchemy': 'nova.db.sqlalchemy.api'}
 
 对象模型的对象不仅封装了数据库访问，还支持了版本控制。每个对象都会维护一个版本号，发起RPC请求时必须指定对象的版本号。新版本的对象通常能够兼容旧版本对象，比如nova-conductor升级了使用对象模型版本为1.2，但nova-compute服务可能还没有升级完成，仍然使用的是1.1版本，此时请求返回时会把conductor的返回的对象转化为1.1版本兼容的对象。
 
+目前Cinder服务还是直接访问数据库，目前已经在社区有对应的BP关于增加cinder-conductor服务[Create conductor service for cinder like nova-conductor](https://blueprints.launchpad.net/cinder/+spec/no-db-volume), 该BP于2013年6月提出，到当前最新版本N还尚未实现。
+
 ## 2. Nova配置
 
 以上我们介绍了nova-conductor以及对象模型的背景，我们了解到所有服务访问数据库都必须通过RPC调用nova-conductor服务请求，但这并不是强制的，如果不考虑数据库访问安全，你仍然可以使用本地访问方式，nova-compute服务可以直接访问数据库而不发起nova-conductor RPC调用。我们看nova-compute服务的初始化，它位于`nova/cmd/compute.y`：
