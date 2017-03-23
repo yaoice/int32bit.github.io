@@ -72,9 +72,9 @@ header-img: "img/post-bg-teamwork.jpg"
             </p>
         </li>
         <li>
-            <a href="http://duoshuo.com/"><strong>多说</strong></a>: 据说是国内下载量最大的Web评论系统。<br/>
+            <a href="https://disqus.com/"><strong>Disqus</strong></a>: 据说下载量最大的Web评论系统。<br/>
             <p>
-                之前一直使用的Disqus评论系统，但由于众所周知的原因老被墙，于是使用国内做得比较好的评论系统，能够和国内流行的社交平台对接。
+                由于众所周知的原因老被墙，所以不保证能够刷出来。
             </p>
         </li>
     </ul>
@@ -165,37 +165,6 @@ header-img: "img/post-bg-teamwork.jpg"
     // init
     _render();
 </script>
-
-
-
-{% if site.duoshuo_username %}
-<!-- 多说评论框 start -->
-<div class="comment">
-    <div class="ds-thread"
-    data-thread-key="{{site.duoshuo_username}}/about"
-    data-title="{{page.title}}"
-    data-url="{{site.url}}/about/"></div>
-</div>
-<!-- 多说评论框 end -->
-
-<!-- 多说公共JS代码 start (一个网页只需插入一次) -->
-<script type="text/javascript">
-    var _user = '{{site.duoshuo_username}}';
-
-    // duoshuo comment query.
-    var duoshuoQuery = {short_name: _user };
-    (function() {
-        var ds = document.createElement('script');
-        ds.type = 'text/javascript';ds.async = true;
-        ds.src = (document.location.protocol == 'https:' ? 'https:' : 'http:') + '//static.duoshuo.com/embed.js';
-        ds.charset = 'UTF-8';
-        (document.getElementsByTagName('head')[0]
-         || document.getElementsByTagName('body')[0]).appendChild(ds);
-    })();
-</script>
-<!-- 多说公共JS代码 end -->
-{% endif %}
-
 
 {% if site.disqus_username %}
 <!-- disqus 评论框 start -->
