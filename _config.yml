@@ -40,7 +40,6 @@ kramdown:
 
 # Disqus settings
 disqus_username: int32bit
-
 # Duoshuo settings
 #duoshuo_username: int32bit
 # Share component is depend on Comment so we can NOT use share only.
