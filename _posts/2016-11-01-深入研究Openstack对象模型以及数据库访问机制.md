@@ -127,7 +127,7 @@ def remotable(fn):
     return wrapper
 ```
 
-从代码看到，当`indirection_api`不为`None`时会调用`indirection_api`的`object_action`方法，由前面我们知道这个值由配置项`use_local`决定，当`use_local`为`True`时`indirection_api`为`conductor_rpcapi.ConductorAPI`。从这里了解到对象并不是通过一堆if-else来判断是否使用`use_local`的，而是通过`@remotable`注解实现的，remotable封装了if-else，当使用local时直接调用原来对象实例的save方法，否则调用`indirection_api`的`object_action`方法。
+从代码看到，当`indirection_api`不为`None`时会调用`indirection_api`的`object_action`方法，由前面我们知道这个值由配置项`use_local`决定，当`use_local`为`False`时`indirection_api`为`conductor_rpcapi.ConductorAPI`。从这里了解到对象并不是通过一堆if-else来判断是否使用`use_local`的，而是通过`@remotable`注解实现的，remotable封装了if-else，当使用local时直接调用原来对象实例的save方法，否则调用`indirection_api`的`object_action`方法。
 
 注意: 除了`@remotable`注解，还定义了`@remotable_classmethod`注解，该注解功能和`@remotable`类似，仅仅相当于又封装了个`@classmethod`注解。
 
