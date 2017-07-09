@@ -6,15 +6,15 @@ var twitter = "https://twitter.com/int32bit";
 
 function do_help(args)
 {
-    var help = "Keyboard Shortcuts: <br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + L</span>" + "&nbsp;".repeat(4) + "Clears the Screen, similar to the 'clear' command.</br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + H</span>" + "&nbsp;".repeat(4) + "Delete character before the cursor, same as backspace.</br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + U</span>" + "&nbsp;".repeat(4) + "Clears the line before the cursor position.</br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + P</span>" + "&nbsp;".repeat(4) + "Previous command in history.</br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + N</span>" + "&nbsp;".repeat(4) + "Next command in history.</br/>";
-    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + D</span>" + "&nbsp;".repeat(4) + "Exit the terminal.</br/>";
+    var help = "快捷键: <br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + L</span>" + "&nbsp;".repeat(4) + "清空终端，相当于执行clear命令.</br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + H</span>" + "&nbsp;".repeat(4) + "删除一个字符,相当于按回退键.</br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + U</span>" + "&nbsp;".repeat(4) + "删除整行内容.</br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + P</span>" + "&nbsp;".repeat(4) + "向前遍历执行过的命令.</br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + N</span>" + "&nbsp;".repeat(4) + "向后遍历执行过的命令.</br/>";
+    help += "&nbsp;".repeat(4) + "<span class='dir'>Ctrl + D</span>" + "&nbsp;".repeat(4) + "退出终端.</br/>";
 
-    help += "Available Commands: <br/>";
+    help += "支持的命令列表: <br/>";
     for (i in commands) {
         help += "<span class='dir'>" + i + "</span> ";
     }

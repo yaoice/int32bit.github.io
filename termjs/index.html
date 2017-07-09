@@ -53,7 +53,7 @@ title: "终端"
 				<li><hr/></li>
 			</ul>
 		</div>
-		<!-- ---------------------------------------------- 顶部条  ------------------------------------------ -->
+		<!-- ---------------------------------------------- top bar  ------------------------------------------ -->
 		<div class="top-bar" id="activities">
 			<table width="100%"><tr><td><a href="/" style="color:white;text-decoration:none;" >HOME</a></td><td id="top-bar-date" align='right'>Loading ...</td></tr></table>
 			<!--
@@ -67,16 +67,9 @@ title: "终端"
 			</div>
 		</div>
 
-		<!-- 输入终端，一直想利用js实现代码重用，但不知道怎么弄 -->
+		<!-- 输入终端 -->
 		<div id="terminal"  class="terminal easyui-draggable easyui-resizable" style="width:800px;height:500px;" >
 			<div class="terminal-title">
-				<!--
-				<div class="close-menu">
-					<img src="img/min.png" onClick="terminalMinized($(this));"></img>
-					<img src="img/max.png" onClick="terminalMaxized($(this));"></img>
-					<img src="img/close.png" onClick="terminalClose($(this));"></img>
-				</div>
-				-->
 				<div style="text-align:center;">
 					fgp@int32bit.me:~
 				</div>
@@ -91,9 +84,9 @@ title: "终端"
 				</ul>
 			</div>
 			<div class="terminal-body" id="terminal-input-body">
-				<div class='output'>Welcome to my blog <a href='/'>int32bit.me</a>&nbsp;😀!</div>
-				<div class='output'>Please type 'help' to see a list of supported commands.</div>
-                <div class='output'>Get source on github&nbsp;👉<a href='https://github.com/int32bit/term.js' target='blank'>term.js</a></div>
+				<div class='output'>欢迎访问我的博客<a href='/'>int32bit.me</a>&nbsp;!</div>
+				<div class='output'>输入'help'查看帮助信息，右击可以更改背景.</div>
+                <div class='output'>Fork me on github&nbsp;👉<a href='https://github.com/int32bit/term.js' target='blank'>term.js</a></div>
 				<div id="lastLine">fgp@int32bit.me:~$
 					<span id="input"></span>
 					<!--
@@ -104,7 +97,6 @@ title: "终端"
 				</div>
 			</div>
 		</div> <!-- terminal -->
-		<!-- ----------------------------------------- -->
 
 	</body>
 </html>
