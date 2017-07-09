@@ -4,7 +4,7 @@ SEOTitle: int32bit的博客 | int32bit Blog
 header-img: img/post-bg-unix-linux.jpg
 username: int32bit
 email: krystism@gmail.com
-description: "About Linux、Openstack、Docker、Bigdata and Ceph "
+description: "About Linux、Openstack、Docker and Ceph "
 keyword: "krystism, int32bit, 付广平, Fu Guangping, @int32bit, krystism Blog , int32bit的博客, int32bit Blog, 博客, 个人网站, 云计算, openstack, docker, 大数据, Hadoop, spark, ceph"
 url: "http://int32bit.github.io"              # your host, for absolute URL
 baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
