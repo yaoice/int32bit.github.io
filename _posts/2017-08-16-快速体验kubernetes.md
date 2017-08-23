@@ -15,7 +15,7 @@ tags:
 
 打开[Play with Kubernetes](http://labs.play-with-k8s.com/)，界面看起来挺酷的！按照提示，就三条命令，安装k8s集群。
 
-  <img src="/assets/images/2017-08-16/1.png" width="1000" height="700" />
+  <img src="/img/posts/2017-08-16/1.png" width="1000" height="700" />
 
 初始化k8s master节点
 
@@ -39,22 +39,22 @@ tags:
 
 安装完dashboard后，IP地址旁边会出现一个端口的链接.
 
-<img src="/assets/images/2017-08-16/2.png" width="1000" height="700" />
+<img src="/img/posts/2017-08-16/2.png" width="1000" height="700" />
 
 中文的k8s dashboard，看起来还挺不错的！
 
-<img src="/assets/images/2017-08-16/3.png" width="1000" height="700" />
+<img src="/img/posts/2017-08-16/3.png" width="1000" height="700" />
 
 
 ## 从dashoard创建一个应用
 
 创建nginx应用
 
-<img src="/assets/images/2017-08-16/4.png" width="1000" height="500" />
+<img src="/img/posts/2017-08-16/4.png" width="1000" height="500" />
 
 查看应用
 
-<img src="/assets/images/2017-08-16/5.png" width="1000" height="500" />
+<img src="/img/posts/2017-08-16/5.png" width="1000" height="500" />
 
 
 ## 集成helm
