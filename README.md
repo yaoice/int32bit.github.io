@@ -1,5 +1,5 @@
 ## Thanks
 
-This theme is forked from [Huxpro/huxpro.github.io](https://github.com/Huxpro/huxpro.github.io)
+This theme is forked from [int32bit/int32bit.github.io](https://github.com/int32bit/int32bit.github.io)
 
 Thanks Jekyll and Github Pages!

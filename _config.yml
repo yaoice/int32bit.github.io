@@ -1,22 +1,22 @@
 # Site settings
-title: "int32bit's Blog"
-SEOTitle: int32bit的博客 | int32bit Blog
-header-img: img/post-bg-unix-linux.jpg
-username: int32bit
-email: krystism@gmail.com
+title: "iceyao's Blog"
+SEOTitle: iceyao的博客 | iceyao Blog
+header-img: img/post-bg-unix-linux.png
+username: yaoice
+email: yao3690093@gmail.com
 description: "About Linux、Openstack、Docker and Ceph "
-keyword: "krystism, int32bit, 付广平, Fu Guangping, @int32bit, krystism Blog , int32bit的博客, int32bit Blog, 博客, 个人网站, 云计算, openstack, docker, 大数据, Hadoop, spark, ceph"
-url: "http://int32bit.github.io"              # your host, for absolute URL
+keyword: "iceyao, yaoice, Blog, 博客, 个人网站, 云计算, openstack, docker, k8s, devops, ansible, ceph"
+url: "http://yaoice.github.io"              # your host, for absolute URL
 baseurl: ""                             # for example, '/blog' if your blog hosted on 'host/blog'
-default_header_image: img/post-bg-universe.jpg
+default_header_image: img/post-bg-universe.png
 
 # SNS settings
 RSS: true
-weibo_username:     316378881
-zhihu_username:     int32bit
-github_username:    int32bit
-twitter_username:  int32bit
-#facebook_username:  int32bit
+weibo_username:     2434627421
+#zhihu_username:     ice
+github_username:    yaoice
+#twitter_username:  yaoice
+#facebook_username:  yaoice
 
 # Build settings
 # from 2016, 'pygments' is unsupported on GitHub Pages. Use 'rouge' for highlighting instead.
@@ -28,7 +28,7 @@ anchorjs: true                          # if you want to customize anchor. check
 
 # Gems
 # from PR#40, to support local preview for Jekyll 3.0
-gems: [jekyll-paginate]
+plugins: [jekyll-paginate]
 
 # Markdown settings
 # replace redcarpet to kramdown,
@@ -39,9 +39,9 @@ kramdown:
   input: GFM                            # use Github Flavored Markdown !important
 
 # Disqus settings
-disqus_username: int32bit
+disqus_username: yaoice
 # Duoshuo settings
-#duoshuo_username: int32bit
+#duoshuo_username: yaoice
 # Share component is depend on Comment so we can NOT use share only.
 #duoshuo_share: true                     # set to false if you want to use Comment without Sharing
 
@@ -52,11 +52,11 @@ ba_track_id: 2f615c9fc2d0100e5a6410b950fa688c
 
 # Google Analytics
 ga_track_id: 'UA-76500579-1'            # Format: UA-xxxxxx-xx
-ga_domain: int32bit.github.io
+ga_domain: yaoice.github.io
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
-sidebar-about-description: "专注于云计算、大数据和分布式，分享和讨论Openstack、Docker、Ceph以及Devops相关技术。"
+sidebar-about-description: "探讨OpenStack、Docker、DevOps、SDN、Ceph等技术。"
 sidebar-avatar: /img/avatar.png      # use absolute URL, seeing it's used in both `/` and `/about/`
 
 # Featured Tags
@@ -66,32 +66,13 @@ featured-condition-size: 1              # A tag will be featured if the size of 
 # Friends
 friends: [
     {
-        title: "cnblog博客地址",
-        href: "http://www.cnblogs.com/int32bit/"
-    },{
-        title: "麦子迈",
-        href: "http://www.wzxue.com/"
+        title: "51cto博客地址",
+        href: "http://iceyao.blog.51cto.com/"
     },{
         title: "酷壳",
         href: "http://coolshell.cn/"
     },{
-        title: "陈沙克日志",
-        href: "http://www.chenshake.com/"
-    },{
-        title: "世民谈云计算",
-        href: "http://www.cnblogs.com/sammyliu/"
-    },{
-        title: "结构之法，算法之道",
-        href: "http://blog.csdn.net/v_july_v"
-    },{
-    },{
-        title: "阮一峰的网络日志",
-        href: "http://www.ruanyifeng.com/"
-    },{
-        title: "Leetcode解题",
-        href: "https://github.com/int32bit/leetcode"
-    },{
-        title: "依云's Blog",
-        href: "http://blog.lilydjwg.me/"
+        title: "jd:/dev/blog",
+        href: "https://julien.danjou.info/"
     }
 ]

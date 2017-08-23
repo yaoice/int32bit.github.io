@@ -1,14 +1,14 @@
 {
-    "name": "int32bit-blog",
-    "title": "Int32bit Blog",
-    "author": "int32bit <krystism@gmail.com>",
+    "name": "yaoice-blog",
+    "title": "Yaoice Blog",
+    "author": "yaoice <yao3690093@gmail.com>",
     "version": "1.6.0",
-    "homepage": "http://int32bit.github.io",
+    "homepage": "http://yaoice.github.io",
     "repository": {
         "type": "git",
-        "url": "https://github.com/int32bit/int32bit.github.io"
+        "url": "https://github.com/yaoice/yaoice.github.io"
     },
-    "bugs": "https://github.com/int32bit/int32bit.github.io/issues",
+    "bugs": "https://github.com/yaoice/yaoice.github.io/issues",
     "devDependencies": {
         "grunt": "~0.4.5",
         "grunt-contrib-less": "~0.11.4",
