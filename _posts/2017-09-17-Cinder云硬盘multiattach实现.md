@@ -12,14 +12,14 @@ tags:
 想通过Cinder multiattach功能，把一个卷挂载个多个虚拟机，从而实现数据共享。虽然我知道manila也可以做到，manila共享出来的是文件系统，而cinder共享出来的是块设备，第一次还需要格式化成文件系统。这里纯碎进行cinder multiattach实践分析。
 
 
-## 环境
+### 环境
 
 CentOS 7.1 （OpenStack Kilo）
 
 
-## 步骤
+### 步骤
 
-### 创建云硬盘
+#### 创建云硬盘
 
 创建一块云硬盘带有multiattach属性，由于本地的cinderclient还不支持multiattach属性，所以直接调用api来创建了.
 
@@ -50,7 +50,7 @@ CentOS 7.1 （OpenStack Kilo）
             }' \
           http://192.168.114.133:8776/v2/a7d6b3e2c63647c4ac8553dfa88e2b1a/volumes
 
-### 挂载给多个虚拟机
+#### 挂载给多个虚拟机
 
 挂载云硬盘给虚拟机，这里列出部分关键阶段：
 
@@ -143,10 +143,10 @@ CentOS 7.1 （OpenStack Kilo）
                              self['mount_device'], mode=mode)  # 不通知cinder更新volume状态
 
 
-## 展望
+### 展望
 
 OpenStack社区从Ocata版本开始开发新的volume attach API，新设计的API将更好的实现多挂载(multi-attach)以及更好地解决cinder和nova状态不一致问题。
 
-## 参考链接
+### 参考链接
 
 - [http://int32bit.me/2017/09/08/OpenStack%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%8C%82%E8%BD%BD%E6%95%B0%E6%8D%AE%E5%8D%B7%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/](http://int32bit.me/2017/09/08/OpenStack%E8%99%9A%E6%8B%9F%E6%9C%BA%E6%8C%82%E8%BD%BD%E6%95%B0%E6%8D%AE%E5%8D%B7%E8%BF%87%E7%A8%8B%E5%88%86%E6%9E%90/)
