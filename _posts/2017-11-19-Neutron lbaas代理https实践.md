@@ -336,9 +336,9 @@ lbaas v2支持TERMINATED_HTTPS和HTTPS，后端driver为haproxy的话，分别�
                           --name='private_key' \
                           --payload="$(cat server.key)"
 
-    barbican secret container create --name='tls_container' \
-                                     --type='certificate' --secret="certificate=$(barbican secret list | awk '/ certificate / {print $2}')" \
-                                     --secret="private_key=$(barbican secret list | awk '/ private_key / {print $2}')"
+    barbican container create --name='tls_container' \
+                              --type='certificate' --secret="certificate=$(barbican secret list | awk '/ certificate / {print $2}')" \
+                              --secret="private_key=$(barbican secret list | awk '/ private_key / {print $2}')"
 
 
 #### 创建实例和网络
