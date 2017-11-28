@@ -77,6 +77,9 @@ LBaaS v2将listener的概念添加到负载均衡器，LBaaS v2允许在单个�
     [DEFAULT]
     service_plugins = router,neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2
 
+#### 初始化lbaas数据库表
+
+    [root@con01 ~(keystone_admin)]# neutron-db-manage --service lbaas upgrade head
 
 #### 创建lbaas v2启动服务脚本
 
@@ -86,7 +89,7 @@ LBaaS v2将listener的概念添加到负载均衡器，LBaaS v2允许在单个�
     After=syslog.target network.target
     [Service]
     Type=simple
-    User=neutron
+    User=root
     ExecStart=/usr/bin/neutron-lbaasv2-agent --config-file /etc/neutron/neutron.conf --config-file /etc/neutron/neutron_lbaas.conf --config-file /etc/neutron/lbaas_agent.ini --log-file /var/log/neutron/lbaasv2-agent.log
     PrivateTmp=false
     KillMode=process
