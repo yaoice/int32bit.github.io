@@ -76,6 +76,14 @@ LBaaS v2将listener的概念添加到负载均衡器，LBaaS v2允许在单个�
     [root@con01 ~(keystone_admin)]# egrep -v "^$|^#" /etc/neutron/neutron.conf
     [DEFAULT]
     service_plugins = router,neutron_lbaas.services.loadbalancer.plugin.LoadBalancerPluginv2
+    [keystone_authtoken]
+    auth_uri = http://10.125.224.21:35357/v2.0
+    identity_uri = http://10.125.224.52:35357/
+    admin_tenant_name = services
+    admin_user = neutron
+    admin_password = xxxxxx
+    auth_version = v2
+
 
 #### 初始化lbaas数据库表
 
@@ -359,7 +367,7 @@ lbaas v2支持TERMINATED_HTTPS和HTTPS，后端driver为haproxy的话，分别�
               --protocol-port 443 \
               --protocol TERMINATED_HTTPS \
               --name listener1 \
-              --default-tls-container=$(barbican secret container list | awk '/ tls_container / {print $2}')
+              --default-tls-container-id=$(barbican container list | awk '/ tls_container / {print $2}')
 
 #### 创建pool
 
