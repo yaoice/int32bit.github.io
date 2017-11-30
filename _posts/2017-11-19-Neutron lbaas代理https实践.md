@@ -159,10 +159,13 @@ lbaas v2支持TERMINATED_HTTPS和HTTPS，后端driver为haproxy的话，分别�
 
 参考这篇文章 [https://github.com/cloudkeep/barbican/wiki/Barbican-Quick-Start-Guide](https://github.com/cloudkeep/barbican/wiki/Barbican-Quick-Start-Guide), 推荐使用virtualenv虚拟环境来安装barbican
 
+    yum install python-devel libffi-devel openssl-devel openldap-devel gcc -y  # 安装相关依赖包
+   
     pip install virtualenv
     virtualenv barbican27
     source barbican27/bin/activate   # 进入虚拟环境；推出虚拟环境是deactivate
 
+    pip install MySQL-python
     git clone https://github.com/openstack/barbican.git ／opt
     git checkout kilo-eol
     cd barbican
@@ -305,6 +308,12 @@ lbaas v2支持TERMINATED_HTTPS和HTTPS，后端driver为haproxy的话，分别�
     admin_password = barbican
     auth_version = v2
     signing_dir = /var/lib/barbican/cache
+
+    [root@con01 ~(keystone_admin)]# vim /etc/barbican/policy.json # 修改policy权限,增加rule:admin
+    "secret:decrypt": "rule:secret_decrypt_non_private_read or rule:secret_creator_user or rule:secret_acl_read or rule:admin",
+    "secret:get": "rule:secret_non_private_read or rule:secret_creator_user or rule:secret_acl_read or rule:admin",
+    "secrets:get": "rule:all_but_audit or rule:admin",
+    "container:get": "rule:container_non_private_read or rule:container_creator_user or rule:container_acl_read or rule:admin",
 
 #### 启动barbican api
 
