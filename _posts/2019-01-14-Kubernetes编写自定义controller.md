@@ -4,7 +4,7 @@ title: Kubernetes编写自定义controller
 subtitle: ""
 catalog: true
 tags:
-     - 其它
+     - k8s
 ---
 
 
