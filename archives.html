@@ -16,7 +16,9 @@ header-img: "img/archives-bg.png"
     <ul>
     {% endif %}
 
+    {% if post.hide != true %}
     <li><span>{{ post.date | date: "%F" }}</span> &raquo; <a style='color:#084B8A;' href="{{ BASE_PATH }}{{ post.url }}">{{ post.title }}</a></li>
+    {% endif %}
 
     {% if forloop.last %}
     </ul>

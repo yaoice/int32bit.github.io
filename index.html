@@ -4,6 +4,7 @@ description: ""
 ---
 
 {% for post in paginator.posts %}
+{% if post.hide != true %}
 <div class="post-preview">
     <a href="{{ post.url | prepend: site.baseurl }}">
         <h2 class="post-title">
@@ -23,6 +24,7 @@ description: ""
     </p>
 </div>
 <hr>
+{% endif %}
 {% endfor %}
 
 <!-- Pager -->
