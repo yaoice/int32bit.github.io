@@ -212,8 +212,8 @@ cluster c1、c2中的Webhook配置会指向各自集群内部的service，这个
 
 ### 总结
 
-AdmissionWebhook可以像拦截器一样拦截K8s api请求，要实现修改用MutatingAdmissionWebhook，
-实现验证ValidatingAdmissionWebhook。
+AdmissionWebhook可以像拦截器一样拦截K8s api请求，要实现修改功能用MutatingAdmissionWebhook，
+实现验证功能用ValidatingAdmissionWebhook。
 
 写一个AdmissionWebhook API的要点：
 1. AdmissionReview结构体
