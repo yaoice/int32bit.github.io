@@ -114,7 +114,7 @@ demo地址: [https://github.com/yaoice/webhook-demo](https://github.com/yaoice/w
 
 克隆demo项目
 ```
-git clone git@github.com:yaoice/webhook-demo.git
+git clone https://github.com/yaoice/webhook-demo.git
 ```
 
 利用脚本(istio团队提供的)生成CertificateSigningRequest，再生成secret(给后面的webhook-api使用)
