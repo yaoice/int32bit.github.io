@@ -126,10 +126,10 @@ docker build --rm -t test/admission-webhook-example:v1 -f docker/Dockerfile .
 ```
 kubectl apply -f ./deployment/mutatingwebhook-ca-bundle.yaml 
 kubectl apply -f ./deployment/validatingwebhook-ca-bundle.yaml
-kubectl apply -f configmap.yaml
-kubectl apply -f deployment.yaml
-kubectl apply -f service.yaml
-kubectl apply -f nginxconfigmap.yaml   # 这里sidecar是nginx, sidecar依赖的configmap
+kubectl apply -f ./deployment/configmap.yaml
+kubectl apply -f ./deployment/deployment.yaml
+kubectl apply -f ./deployment/service.yaml
+kubectl apply -f ./deployment/nginxconfigmap.yaml   # 这里sidecar是nginx, sidecar依赖的configmap
 ```
 
 给default命名空间打label
