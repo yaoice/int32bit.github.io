@@ -1,6 +1,6 @@
 ---
 layout: post
-title: K8s AdmissionWebhook实践
+title: 玩转K8s AdmissionWebhook
 subtitle: ""
 catalog: true
 tags:
@@ -97,14 +97,25 @@ Istio相信大家都有听过，istio就是采用AdmissionWebhook实现sidecar�
     应用启动后，应用的监控、日志如何处理？借助sidecar容器注入到其pod中
 
 
-收集应用日志的sidecar容器如下图所示，应用监控的sidecar容器类似
+收集应用日志的sidecar容器可以像下图所示，应用监控的sidecar容器类似
     
 <img src="/img/posts/2019-06-05/2.png" width="500" height="400" />
     
 
 ### AdmissionWebhook demo
 
-进入实战阶段，git clone [demo例子](https://github.com/yaoice/webhook-demo)实现自动打标签+sidecar自动注入的功能
+进入实战阶段，看demo
+
+demo地址: [https://github.com/yaoice/webhook-demo](https://github.com/yaoice/webhook-demo) 实现的功能有：
+
+- 针对admission-webhook-example=enabled标签的命名空间生效
+- 自动打标签(pod、deplpoyment、service、ingress自动打上app.kubernetes.io/name=not_available的标签)
+- sidecar自动注入(pod自动带上nginx sidecar container)
+
+克隆demo项目
+```
+git clone git@github.com:yaoice/webhook-demo.git
+```
 
 利用脚本(istio团队提供的)生成CertificateSigningRequest，再生成secret(给后面的webhook-api使用)
 ```
@@ -132,7 +143,7 @@ kubectl apply -f ./deployment/service.yaml
 kubectl apply -f ./deployment/nginxconfigmap.yaml   # 这里sidecar是nginx, sidecar依赖的configmap
 ```
 
-给default命名空间打label
+给default命名空间打label，只对admission-webhook-example标签的命名空间生效
 ```
 kubectl label namespace default admission-webhook-example=enabled
 ```
@@ -140,15 +151,24 @@ kubectl label namespace default admission-webhook-example=enabled
 部署一个busybox，sidecar是nginx
 ```
 kubectl apply -f ./deployment/sleep.yaml
+```
 
+pod自动打上app.kubernetes.io/name标签, pod中有两个container
+```
 kubectl get pod sleep-5588cb5f94-5dl8f --show-labels 
 NAME                     READY     STATUS    RESTARTS   AGE       LABELS
 sleep-5588cb5f94-5dl8f   2/2       Running   0          27s       app.kubernetes.io/name=not_available,app=sleep,pod-template-hash=1144761950 
+```
 
+service自动打上app.kubernetes.io/name标签
+```
 kubectl get svc sleep --show-labels 
 NAME      TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE       LABELS
 sleep     ClusterIP   10.68.4.5    <none>        80/TCP    4m        app.kubernetes.io/name=not_available
+```
 
+ingress自动打上app.kubernetes.io/name标签
+```
 kubectl get ingresses.extensions sleep --show-labels 
 NAME      HOSTS          ADDRESS   PORTS     AGE       LABELS
 sleep     xx.sleep.com             80        4m        app.kubernetes.io/name=not_available
@@ -249,8 +269,6 @@ AdmissionWebhook可以像拦截器一样拦截K8s api请求，要实现修改功
       Value: true,
     })
     ```
-
-
 
 ### 参考链接
 
