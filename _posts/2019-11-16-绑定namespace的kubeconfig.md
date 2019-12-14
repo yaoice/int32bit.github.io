@@ -41,6 +41,10 @@ k8s中的用户有serviceaccount和user
         -out ice.crt \
         -days 3650
    ```
+   ```
+   # 查看证书内容
+   openssl x509 -in /etc/kubernetes/pki/apiserver.crt -text -noout
+   ```
 4. 为ice用户添加rbac
    
    创建ice命名空间
@@ -122,3 +126,4 @@ k8s中的用户有serviceaccount和user
 
 - [为Kubernetes集群添加用户](https://zhuanlan.zhihu.com/p/43237959)
 - [创建用户认证授权的kubeconfig文件](https://www.zrq.org.cn/post/%E5%88%9B%E5%BB%BA%E7%94%A8%E6%88%B7%E8%AE%A4%E8%AF%81%E6%8E%88%E6%9D%83%E7%9A%84kubeconfig%E6%96%87%E4%BB%B6/)
+- [Openssl生成自签名证书，简单步骤](https://ningyu1.github.io/site/post/51-ssl-cert/)
