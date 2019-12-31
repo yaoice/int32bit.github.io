@@ -60,7 +60,7 @@ helm ls是直接通过grpc跟tiller通信的，正常
 
 ### 分析
 
-确认下版本，swift是0.9.0, helm tiller是2.10.0, 按照官网版本版本对应的关系是:
+确认下版本，swift是0.9.0, helm tiller是2.10.0, 按照[官网版本](https://github.com/kubepack/swift)对应的关系是:
 
 | Swift Version                                                     | Helm/Tiller Version |
 |-------------------------------------------------------------------|---------------------|
@@ -74,7 +74,6 @@ helm ls是直接通过grpc跟tiller通信的，正常
 | [0.3.2](https://github.com/kubepack/swift/releases/tag/0.3.2)     | 2.5.x, 2.6.x        |
 | [0.2.0](https://github.com/kubepack/swift/releases/tag/0.2.0)     | 2.5.x, 2.6.x        |
 | [0.1.0](https://github.com/kubepack/swift/releases/tag/0.1.0)     | 2.5.x, 2.6.x        |
-链接地址: [https://github.com/kubepack/swift](https://github.com/kubepack/swift)
 
 swift 0.9.0版本对应的tiller版本是2.11.0
 

@@ -29,4 +29,6 @@ TIME_WAIT 16
 netstat -napto|egrep -v "and|Address" | awk '{print$5}'|awk -F : '{print$1}'|sort|uniq -c|sort -rn
 ```
 
+
+
 ### 参考链接
