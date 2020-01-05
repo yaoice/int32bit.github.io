@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 记一次k8s cgroup内存泄露问题
+title: 记一次k8s apiserver连接数过多问题排查
 subtitle: ""
 catalog: true
 tags:
