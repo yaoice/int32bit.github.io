@@ -207,6 +207,7 @@ setting-tz   2020-01-17T12:32:22Z
 #### 方法四
 
 基于方法三的基础上，可以实现个自动创建podpresets于各个命名空间的自定义controller
+[https://github.com/yaoice/autotz](https://github.com/yaoice/autotz)
 
 ### 参考链接
 

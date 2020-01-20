@@ -91,6 +91,7 @@ Kubernetes API服务器连接。 服务器端负责以下功能:
 
 1. 自行构建REST API框架，通过grpc client直接与tiller server交互
 2. 自行构建REST API框架，通过helm client直接与tiller server交互（推荐）
+3. 开源有个swift项目，负责把tiller grpc转rest api暴露出来
 
 ### 参考实现
 
