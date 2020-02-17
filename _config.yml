@@ -74,5 +74,8 @@ friends: [
     },{
         title: "jd:/dev/blog",
         href: "https://julien.danjou.info/"
+    },{
+        title: "KaiRen's Blog",
+        href: "https://k2r2bai.com/"
     }
 ]
