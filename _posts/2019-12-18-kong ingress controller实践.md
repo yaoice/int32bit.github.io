@@ -532,7 +532,7 @@ metadata:
   name: ingress-kong
   namespace: kong
 spec:
-  replicas: 1
+  replicas: 2
   selector:
     matchLabels:
       app: ingress-kong
@@ -1061,8 +1061,170 @@ https-test   7s
 ```
 用docker login验证登录，推送镜像
 
+#### 集成istio
+
+0.6版本天生支持集成isito, ingress规则中annotation中不要带有kubernetes.io/ingress.class: nginx即可
+
+#### 配置健康检查
+
+以一个httpbin的服务为例
+```
+# vim httpbin.yaml 
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: httpbin
+  labels:
+    app: httpbin
+spec:
+  ports:
+  - name: http
+    port: 80
+    targetPort: 80
+  selector:
+    app: httpbin
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: httpbin
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: httpbin
+  template:
+    metadata:
+      labels:
+        app: httpbin
+    spec:
+      containers:
+      - image: docker.io/kennethreitz/httpbin
+        name: httpbin
+        ports:
+        - containerPort: 80
+---
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: demo
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /foo
+        backend:
+          serviceName: httpbin
+          servicePort: 80
+```
+
+```
+# kubectl apply -f httpbin.yaml 
+```
+
+curl调用验证服务是否ok
+```
+# curl -i -H "Host:test.xxx.com" http://<kong-server-ip>/foo/status/200
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 0
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Date: Tue, 11 Feb 2020 02:34:04 GMT
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+X-Kong-Upstream-Latency: 2
+X-Kong-Proxy-Latency: 0
+Via: kong/1.4.2
+```
+
+创建健康检查资源，同时配置了主动健康检查和被动健康检查
+
+- 主动健康检查：每间隔5s,对http_path成功3次为健康, 失败2次为不健康;
+- 被动健康检查：这里配置被动健康检查只是为了触发效果, 成功2次为健康, 失败3次为不健康;
+
+当被动健康检查为不健康的状态后, 且不会自动恢复; 但如果和主动健康检查配置使用的话，等到了主动检查间隔，成功的话会从不健康状态转变为健康状态。
+```
+# vim demo-health-checking.yaml  
+apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+    name: demo-health-checking
+upstream:
+  healthchecks:
+    active:
+      healthy:
+        interval: 5
+        successes: 2
+      http_path: /status/200
+      type: http
+      unhealthy:
+        http_failures: 3
+        interval: 5
+    passive:
+      healthy:
+        successes: 2
+      unhealthy:
+        http_failures: 3 
+```
+
+关联健康检查和httpbin的service资源
+```
+kubectl patch svc httpbin -p '{"metadata":{"annotations":{"configuration.konghq.com":"demo-health-checking"}}}'
+```
+
+手动触发三次返回码为500判定为不健康状态
+```
+# curl -i -H "Host:test.xxx.com" http://<kong-server-ip>/foo/status/500
+# curl -i -H "Host:test.xxx.com" http://<kong-server-ip>/foo/status/500
+# curl -i -H "Host:test.xxx.com哎" http://<kong-server-ip>/foo/status/500
+
+# curl -i -H "Host:test.xxx.com" http://<kong-server-ip>/foo/status/200
+  HTTP/1.1 503 Service Temporarily Unavailable
+  Date: Tue, 11 Feb 2020 08:40:34 GMT
+  Content-Type: application/json; charset=utf-8
+  Connection: keep-alive
+  Content-Length: 58
+  X-Kong-Response-Latency: 0
+  Server: kong/1.4.2
+  
+  {"message":"failure to get a peer from the ring-balancer"}
+
+# 过了5*2秒后，触发主动健康检查，转变为健康状态
+# curl -i -H "Host:test.xxx.com" http://<kong-server-ip>/foo/status/200
+HTTP/1.1 200 OK
+Content-Type: text/html; charset=utf-8
+Content-Length: 0
+Connection: keep-alive
+Server: gunicorn/19.9.0
+Date: Tue, 11 Feb 2020 08:45:11 GMT
+Access-Control-Allow-Origin: *
+Access-Control-Allow-Credentials: true
+X-Kong-Upstream-Latency: 2
+X-Kong-Proxy-Latency: 0
+Via: kong/1.4.2
+```
+
+调用接口获取upstreams列表，每条ingress对应kong的service、route、upstream；
+upstream详情带有健康状态
+```
+curl -X GET \
+  http://<kong-server-ip>:8001/upstreams
+```
+
+获取某个upstream健康状态
+```
+curl -X GET \
+  http://<kong-server-ip>:8001/upstreams/<upstream-id>/health
+```
+data[0].health==HEALTHY为健康状态，data[0].health==UNHEALTHY为不健康状态; health还有种DNS_ERROR状态
+
 ### 参考链接
 
 - [KongIngress使用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongingress-resource.md)
 - [KongPlugin使用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongplugin-resource.md)
 - [Kong CRD](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/references/custom-resources.md)
+- [Kong集成isito](https://konghq.com/blog/kong-ingress-controller-0-6-released-istio-support-admission-controller-support/)
+- [Kong配置健康检查](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configuring-health-checks.md)
+- [Kong-ingress-controllerg高可用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/concepts/ha-and-scaling.md)
