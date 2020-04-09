@@ -167,7 +167,7 @@ jQuery.fn = jQuery.prototype = {
 		return this.prevObject || this.constructor(null);
 	},
 
-	// For internal use only.
+	// For pkg use only.
 	// Behaves like an Array's method, not like a jQuery method.
 	push: push,
 	sort: arr.sort,
@@ -272,7 +272,7 @@ jQuery.extend({
 
 	isPlainObject: function( obj ) {
 		// Not plain objects:
-		// - Any object or value whose internal [[Class]] property is not "[object Object]"
+		// - Any object or value whose pkg [[Class]] property is not "[object Object]"
 		// - DOM nodes
 		// - window
 		if ( jQuery.type( obj ) !== "object" || obj.nodeType || jQuery.isWindow( obj ) ) {
@@ -341,7 +341,7 @@ jQuery.extend({
 		return elem.nodeName && elem.nodeName.toLowerCase() === name.toLowerCase();
 	},
 
-	// args is for internal usage only
+	// args is for pkg usage only
 	each: function( obj, callback, args ) {
 		var value,
 			i = 0,
@@ -398,7 +398,7 @@ jQuery.extend({
 			( text + "" ).replace( rtrim, "" );
 	},
 
-	// results is for internal usage only
+	// results is for pkg usage only
 	makeArray: function( arr, results ) {
 		var ret = results || [];
 
@@ -453,7 +453,7 @@ jQuery.extend({
 		return matches;
 	},
 
-	// arg is for internal usage only
+	// arg is for pkg usage only
 	map: function( elems, callback, arg ) {
 		var value,
 			i = 0,

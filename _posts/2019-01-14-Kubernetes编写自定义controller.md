@@ -250,6 +250,16 @@ func main() {
 }
 ```
 
+### 常用小技巧
+
+使用WithTweakListOptions结合LabelSelector或FieldSelector可以针对特定的资源
+```
+informerFactory := informers.NewSharedInformerFactoryWithOptions(s.Client, s.ConfigSyncPeriod,
+    informers.WithTweakListOptions(func(options *v1meta.ListOptions) {
+	    options.LabelSelector = "!" + apis.LabelServiceProxyName
+    }))
+```
+
 ### 参考链接
 
 - [kubernetes ingress自定义controller简易实现](https://github.com/meyskens/k8s-openresty-ingress)

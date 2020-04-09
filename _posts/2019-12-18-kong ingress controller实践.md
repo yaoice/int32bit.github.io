@@ -625,7 +625,7 @@ spec:
             fieldRef:
               apiVersion: v1
               fieldPath: metadata.namespace
-        image: kong-docker-kubernetes-ingress-controller.bintray.io/kong-ingress-controller:0.6.2
+        image: kong-docker-kubernetes-ingress-controller.bintray.io/kong-ingress-controller:0.7.1
         imagePullPolicy: IfNotPresent
         livenessProbe:
           failureThreshold: 3
@@ -1220,6 +1220,44 @@ curl -X GET \
 ```
 data[0].health==HEALTHY为健康状态，data[0].health==UNHEALTHY为不健康状态; health还有种DNS_ERROR状态
 
+#### 启用Prometheus plugin
+
+加载prometheus plugin，新增annotations
+```
+kubectl -n kong edit deployments. ingress-kong
+spec:
+  template:
+    metadata:
+      annotations:
+        prometheus.io/port: "9542"
+        prometheus.io/scrape: "true"
+    spec:
+      containers:
+      - env:
+        - name: KONG_PLUGINS
+          value: ...,prometheus
+```
+
+声明为global，每个请求都被prometheus跟踪
+```
+echo "apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  labels:
+    global: \"true\"
+  name: prometheus
+plugin: prometheus
+" | kubectl apply -f -
+```
+
+获取kong metrics
+```
+CLUSTER_IP=`kubectl -n kong get services kong-admin --output=jsonpath={.spec.clusterIP}`
+curl http://${CLUSTER_IP}:8001/metrics
+```
+
+[kong grafana界面json配置文件](https://github.com/Kong/kong-plugin-prometheus/blob/master/grafana/kong-official.json)
+
 ### 参考链接
 
 - [KongIngress使用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongingress-resource.md)
@@ -1228,3 +1266,4 @@ data[0].health==HEALTHY为健康状态，data[0].health==UNHEALTHY为不健康�
 - [Kong集成isito](https://konghq.com/blog/kong-ingress-controller-0-6-released-istio-support-admission-controller-support/)
 - [Kong配置健康检查](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configuring-health-checks.md)
 - [Kong-ingress-controllerg高可用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/concepts/ha-and-scaling.md)
+- [ingress-kong-controller集成prometheus、grafana](https://github.com/Kong/kubernetes-ingress-controller/blob/0.7.1/docs/guides/prometheus-grafana.md)
