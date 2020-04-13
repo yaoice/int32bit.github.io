@@ -3,7 +3,6 @@ layout: post
 title: kube-proxy源码阅读笔记
 subtitle: ""
 catalog: true
-hide: true
 tags:
      - k8s
 ---
@@ -714,7 +713,7 @@ func newProxyServer(
 o.runLoop ->  o.proxyServer.Run -> s.Proxier.SyncLoop 
     -> proxier.syncRunner.Loop -> bfr.tryRun
     -> bfr.fn -> proxier.syncProxyRules(iptables/ipvs/usernamespace)
-```    
+```
 
 ### 参考链接
 

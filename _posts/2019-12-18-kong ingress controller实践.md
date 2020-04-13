@@ -1224,7 +1224,7 @@ data[0].health==HEALTHY为健康状态，data[0].health==UNHEALTHY为不健康�
 
 加载prometheus plugin，新增annotations
 ```
-kubectl -n kong edit deployments. ingress-kong
+# kubectl -n kong edit deployments. ingress-kong
 spec:
   template:
     metadata:
@@ -1256,7 +1256,74 @@ CLUSTER_IP=`kubectl -n kong get services kong-admin --output=jsonpath={.spec.clu
 curl http://${CLUSTER_IP}:8001/metrics
 ```
 
-[kong grafana界面json配置文件](https://github.com/Kong/kong-plugin-prometheus/blob/master/grafana/kong-official.json)
+编辑prometheus配置，加入kong数据获取
+```
+# kubectl -n xxx edit cm prometheus-server 
+
+data:
+ prometheus.yml: |
+    scrape_configs:
+    - job_name: kong
+      scrape_interval: 10s
+      scrape_timeout: 10s
+      static_configs:
+      - targets:
+        - kong-admin.kong.svc.cluster.local:8001
+```
+在prometheus web上能够查询到kong的metrics，结合grafana展示参考：[https://github.com/yaoice/kong-plugin-prometheus/blob/0.6.0-add_request_count/grafana/kong-official.json](https://github.com/yaoice/kong-plugin-prometheus/blob/0.6.0-add_request_count/grafana/kong-official.json)
+
+#### 启用basic-auth plugin
+
+```
+# vim basic_auth.yaml 
+apiVersion: configuration.konghq.com/v1
+kind: KongPlugin
+metadata:
+  name: basic-auth
+  namespace: default
+config:
+  hide_credentials: true
+plugin: basic-auth
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongConsumer
+metadata:
+  name: elasticsearch 
+  namespace: default
+username: elasticsearch
+---
+apiVersion: configuration.konghq.com/v1
+kind: KongCredential
+metadata:
+  name: elasticsearch 
+  namespace: default
+consumerRef: elasticsearch
+type: basic-auth
+config:
+  username: elasticsearch 
+  password: test 
+```
+
+```
+kubectl apply -f basic_auth.yaml 
+```
+
+关联basic-auth plugin
+```
+kubectl -n default patch ingress elasticsearch -p '{"metadata":{"annotations":{"plugins.konghq.com":"basic-auth"}}}'
+```
+
+测试
+```
+# curl -I -H 'Authorization: Basic ZWxhc3RpY3NlYXJjaDp0ZXN0' http://elasticsearch.xxx.com/ 
+HTTP/1.1 200 OK
+Content-Type: application/json; charset=UTF-8
+Content-Length: 519
+Connection: keep-alive
+X-Kong-Upstream-Latency: 1
+X-Kong-Proxy-Latency: 1
+Via: kong/1.4.2
+```
 
 ### 参考链接
 
@@ -1267,3 +1334,4 @@ curl http://${CLUSTER_IP}:8001/metrics
 - [Kong配置健康检查](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/configuring-health-checks.md)
 - [Kong-ingress-controllerg高可用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/concepts/ha-and-scaling.md)
 - [ingress-kong-controller集成prometheus、grafana](https://github.com/Kong/kubernetes-ingress-controller/blob/0.7.1/docs/guides/prometheus-grafana.md)
+- [kong grafana界面json](https://github.com/Kong/kong-plugin-prometheus/blob/master/grafana/kong-official.json)
