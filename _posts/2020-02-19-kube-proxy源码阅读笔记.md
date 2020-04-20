@@ -83,6 +83,7 @@ filter表自定义链:
 - KUBE-FIREWALL
 
 nat表自定义链:
+
 - KUBE-HOSTPORTS
 - KUBE-SERVICES
 - KUBE-POSTROUTING
@@ -292,7 +293,7 @@ ip集合存储在带索引的数据结构中,这种集合比较大也可以进�
 
 SNAT vs MASQUERADE区别：MASQUERADE不需要指定SNAT的目标ip，自动获取
 
-                                                                                     
+
 ipvs工作流程图
 
 <img src="/img/posts/2020-02-19/2.png" width="800" height="600" />
@@ -356,7 +357,7 @@ httpbin clusterIP为172.20.255.90(3副本)
 
 访问clusterIP iptables规则链顺序为: (结合上面ipvs工作流程图)
 ```
-PREROUTING -> KUBE-SERVICES -> KUBE-CLUSTER-IP(ipset) -> INPUT -> KUBE-FIREWALL ->  
+PREROUTING -> KUBE-SERVICES -> KUBE-CLUSTER-IP(ipset) -> INPUT -> KUBE-FIREWALL -> POSTROUTING
 ```
 
 ```
@@ -428,7 +429,7 @@ TCP  172.20.255.90:80 rr
 
 10. 标记0x4000的包，正常MASQUERADE(类SNAT)
 -A KUBE-POSTROUTING -m comment --comment "kubernetes service traffic requiring SNAT" -m mark --mark 0x4000/0x4000 -j MASQUERADE
-``` 
+```
 
 ##### nodePort service类型
 
@@ -708,12 +709,26 @@ func newProxyServer(
 }
 ```
 
-调用流程
+
+
+接下来的调用流程：
+
+```mermaid
+graph TD
+A[o.runLoop] -->B(o.proxyServer.Run) 
+		B --> C(s.Proxier.SyncLoop) 
+	  C --> D(proxier.syncRunner.Loop)
+	  D --> E(bfr.tryRun/bfr.fn)
+	  E --> F{模式mode}
+    F -->|mode=iptables| G[proxier.syncProxyRules]
+    F -->|mode=ipvs| H[proxier.syncProxyRules]
+    F -->|mode=usernamespace| I[proxier.syncProxyRules]
+    Z[调用流程]
 ```
-o.runLoop ->  o.proxyServer.Run -> s.Proxier.SyncLoop 
-    -> proxier.syncRunner.Loop -> bfr.tryRun
-    -> bfr.fn -> proxier.syncProxyRules(iptables/ipvs/usernamespace)
-```
+
+最终会根据不同模式，调用到proxier.syncProxyRules；创建相应的iptables规则、ipvs规则，都是具体的命令；这个函数也比较长，可以一条一条规则对着分析.
+
+
 
 ### 参考链接
 
