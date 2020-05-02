@@ -317,6 +317,10 @@ spec.schedulerName=random-scheduler标明使用的是哪个调度器
 
 方式3实现的代码范例：[https://github.com/yaoice/sample-scheduler-extender](https://github.com/yaoice/sample-scheduler-extender)
 
+scheduler extender也有局限性，所以k8s社区提出scheduler framework机制(v1.15), scheduler extender
+的局限性在这里可以看到：[https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/20180409-scheduling-framework.md](https://github.com/kubernetes/enhancements/blob/master/keps/sig-scheduling/20180409-scheduling-framework.md)
+
+
 ### 参考链接
 
 - [https://blog.tianfeiyu.com/source-code-reading-notes/kubernetes/kube_scheduler_algorithm.html](https://blog.tianfeiyu.com/source-code-reading-notes/kubernetes/kube_scheduler_algorithm.html)
