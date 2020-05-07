@@ -14,6 +14,23 @@
 <img src="/img/icon_wechat.png" width="0" height="0" />
 <!-- Migrate from head to bottom, no longer block render and still work -->
 
-</body>
+{%- if site.mermaid_enable -%}
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/mermaid/8.0.0/mermaid.min.js"></script>
+<script type="text/javascript">
+        (function(){
+            // Initial mermaid
+            mermaid.init({startOnLoad:true}, "pre code.language-mermaid", function(){
+                // Change <pre> and <code> block style
+                var codeBlock = document.querySelector('code.language-mermaid');
+                var preBlock = codeBlock.parentNode;
 
+                codeBlock.style.backgroundColor = 'initial';
+                preBlock.style.border = 'none';
+                preBlock.style.textAlign = 'center';
+                preBlock.style.backgroundColor = 'initial';
+            });
+        })()
+</script>
+{%- endif -%}
+</body>
 </html>
