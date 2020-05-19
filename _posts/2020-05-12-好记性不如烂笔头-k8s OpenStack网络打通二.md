@@ -3,7 +3,6 @@ layout: post
 title: 好记性不如烂笔头
 subtitle: k8s、OpenStack网络打通(二)
 catalog: true
-hide: true
 tags:
      - k8s
 ---
@@ -77,26 +76,25 @@ neutron port-update \
 
 ```mermaid
 sequenceDiagram
-    ipam cni ->> +FileLock : cmdAdd，Lock()获取文件锁
-    FileLock -->> -ipam cni : 
-    ipam cni ->> + neutron : 追加vm port ip列表
-    neutron ->> - ipam cni : 返回vm port新ip列表信息
-    ipam cni ->> ipam cni : 本地过滤对比，得到新ip
-    ipam cni ->> +local storae : ip和container id的映射关系写入本地存储
+    ipam cni ->> +FileLock: cmdAdd，Lock()获取文件锁
+    FileLock -->> -ipam cni: 
+    ipam cni ->> + neutron: 追加vm port ip列表
+    neutron ->> - ipam cni: 返回vm port新ip列表信息
+    ipam cni ->> ipam cni: 本地过滤对比，得到新ip
+    ipam cni ->> +local storae: ip和container id的映射关系写入本地存储
     local storae -->> -ipam cni :写入成功 
     ipam cni ->> +FileLock: Unlock()释放文件锁
-    FileLock -->> -ipam cni : 
-    
-    ipam cni ->> +FileLock : cmdDel，Lock()获取文件锁
-    FileLock -->> -ipam cni : 
-    ipam cni ->> +local storae : 查询本地存储ip和container id的映射关系
-    local storae ->> -ipam cni : 返回container id对应的ip 
-    ipam cni ->> +neutron : 减少vm port ip列表
-    neutron -->> -ipam cni : 
-    ipam cni ->> +local storae : 删除本地存储ip和container id的映射关系
-    local storae ->> -ipam cni : 
+    FileLock -->> -ipam cni: 
+    ipam cni ->> +FileLock: cmdDel，Lock()获取文件锁
+    FileLock -->> -ipam cni: 
+    ipam cni ->> +local storae: 查询本地存储ip和container id的映射关系
+    local storae ->> -ipam cni: 返回container id对应的ip 
+    ipam cni ->> +neutron: 减少vm port ip列表
+    neutron -->> -ipam cni: 
+    ipam cni ->> +local storae: 删除本地存储ip和container id的映射关系
+    local storae ->> -ipam cni: 
     ipam cni ->> +FileLock: Unlock()释放文件锁
-    FileLock -->> -ipam cni :  
+    FileLock -->> -ipam cni: `
 ```
 
 
