@@ -69,18 +69,21 @@ k8s v1.14.6对应github.com/containernetworking/cni版本是v0.6.0；其它k8s�
 # git clone https://github.com/containernetworking/plugins.git
 ```
 
+调用流程图如下：
+
 ```mermaid
 sequenceDiagram
     kubelet ->> kubelet : 加载cni插件
     kubelet ->> + ipam cni : SetUpPod创建pod
     ipam cni ->> + neutron : cmdAdd创建container port
-    neutron -->> - ipam cni : 返回container port信息
-    ipam cni -->> - kubelet: 返回container ip信息
+    neutron ->> - ipam cni : 返回container port信息
+    ipam cni ->> - kubelet: 返回container ip信息
     kubelet ->> + ipam cni : TearDownPod删除pod
     ipam cni ->> neutron: 查询container port
+    neutron ->> ipam cni: 返回container port
     ipam cni ->> + neutron : cmdDel删除container port
-    neutron -->> - ipam cni : nil
-    ipam cni -->> - kubelet : nil
+    neutron ->> - ipam cni : nil
+    ipam cni ->> - kubelet : nil
 ```
 
 参考实现: [https://github.com/yaoice/cni-ipam-neutron](https://github.com/yaoice/cni-ipam-neutron)
