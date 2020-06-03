@@ -91,18 +91,9 @@ sequenceDiagram
     local storae ->> -ipam cni: 返回container id对应的ip 
     ipam cni ->> +neutron: 减少vm port ip列表
     neutron -->> -ipam cni: 
-    ipam cni ->> +local storae: 删除本地存储ip和container id的映射关系
-    local storae ->> -ipam cni: 
+    ipam cni ->> +local storage: 删除本地存储ip和container id的映射关系
+    local storage ->> -ipam cni: 
     ipam cni ->> +FileLock: Unlock()释放文件锁
     FileLock -->> -ipam cni: `
 ```
-
-
-
-
-
-
-
-   
-
 
