@@ -1325,6 +1325,27 @@ X-Kong-Proxy-Latency: 1
 Via: kong/1.4.2
 ```
 
+#### 设置session cookie
+
+声明一个cr, 设置hash类型为cookie，cookie名字为route(可以修改)
+```
+# echo 'apiVersion: configuration.konghq.com/v1
+kind: KongIngress
+metadata:
+  name: demo-customization
+  namespace: <your-namespace>
+upstream:
+  hash_on: cookie
+  hash_on_cookie: route | kubectl apply -f -
+kongingress.configuration.konghq.com/demo-customization created
+```
+
+关联上述cr到应用的k8s service
+```
+# kubectl -n <your-namespace> patch service <your-k8s-service-name> \
+    -p '{"metadata":{"annotations":{"configuration.konghq.com":"demo-customization"}}}'
+```
+
 ### 参考链接
 
 - [KongIngress使用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongingress-resource.md)
@@ -1335,3 +1356,4 @@ Via: kong/1.4.2
 - [Kong-ingress-controllerg高可用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/concepts/ha-and-scaling.md)
 - [ingress-kong-controller集成prometheus、grafana](https://github.com/Kong/kubernetes-ingress-controller/blob/0.7.1/docs/guides/prometheus-grafana.md)
 - [kong grafana界面json](https://github.com/Kong/kong-plugin-prometheus/blob/master/grafana/kong-official.json)
+- [kong插件使用-安全插件使用](https://www.lijiaocn.com/%E9%A1%B9%E7%9B%AE/2018/09/30/kong-features-02-security.html)
