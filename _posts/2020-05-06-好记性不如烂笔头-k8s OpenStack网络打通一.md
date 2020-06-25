@@ -59,6 +59,15 @@ k8s v1.14.6对应github.com/containernetworking/cni版本是v0.6.0；其它k8s�
 
 <img src="/img/posts/2020-05-06/k8s_openstack_separate.png"/>
 
+这里ipvlan工作在l2模式
+
+- L2模式下入出流量不会经过host namespace网络，无法支持kube-proxy
+- L3模式但入琉璃那个不经过host namespace网络，无法支持kube-proxy
+- L3S模式下出入流量均经过host namespace的三层网络，但又会带来以下新的问题：
+  - 当service的client和server POD在一个master时，server的response报文会走ipvlan datapath, service访问失败
+  - L3S模式下流量从4层进入interface，无法支持kata等安全容器
+  - 当client和server在同一node时，导致同一方向流量多次进出host conntrack，datapath复杂，和iptables/ipvs也存在兼容性问题
+
 1. VM和pod地址统一由neutron ipam分配
 2. pod内部有veth网卡连接宿主机
 3. pod默认网关是1.1.1.254, 跨网段访问在上层路由实现.

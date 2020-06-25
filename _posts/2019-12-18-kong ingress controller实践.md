@@ -1346,6 +1346,30 @@ kongingress.configuration.konghq.com/demo-customization created
     -p '{"metadata":{"annotations":{"configuration.konghq.com":"demo-customization"}}}'
 ```
 
+#### 启动cors插件
+
+```
+# kubectl -n kong get kongplugins.configuration.konghq.com demo-cors -o yaml
+apiVersion: configuration.konghq.com/v1
+config:
+  methods:
+  - GET
+  - POST
+  - PUT
+  origins:
+  - '*'
+disabled: false
+kind: KongPlugin
+metadata:
+  name: demo-cors
+  namespace: kong
+plugin: cors
+```
+
+```
+kubectl patch ingress test -p '{"metadata":{"annotations":{"plugins.konghq.com":"demo-cors"}}}'
+```
+
 ### 参考链接
 
 - [KongIngress使用](https://github.com/Kong/kubernetes-ingress-controller/blob/master/docs/guides/using-kongingress-resource.md)
