@@ -62,6 +62,7 @@ autoscaling/v2beta2 api在k8s 1.12+版本中可用
 | ------------ | -------------- | ------- | -- | -- |
 | `prometheus-query` | Generic metric which requires a user defined query. | External | | `>=1.12` |
 | *custom* | No predefined metrics. Metrics are generated from user defined queries. | Object | *any* | `>=1.12` |
+
 Object metric已废弃，未来会被淘汰.
 
 ### 源码分析
