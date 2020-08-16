@@ -1,6 +1,6 @@
 ---
 layout: post
-title: 好记性不如烂笔头
+title: k8s网络开发
 subtitle: k8s、OpenStack网络打通(一)
 catalog: true
 tags:
