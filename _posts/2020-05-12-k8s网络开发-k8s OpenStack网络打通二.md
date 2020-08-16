@@ -74,21 +74,21 @@ neutron port是跟VM关联的，要实现VM下的pod之间能够互相通信，�
 go-filemutex用于多进程间的同步
 ```
 import (
-	"log"
-	"github.com/alexflint/go-filemutex"
+    "log"
+    "github.com/alexflint/go-filemutex"
 )
 
 func main() {
-	m, err := filemutex.New("/tmp/foo.lock")
-	if err != nil {
-		log.Fatalln("Directory did not exist or file could not created")
-	}
+    m, err := filemutex.New("/tmp/foo.lock")
+    if err != nil {
+        log.Fatalln("Directory did not exist or file could not created")
+    }
 
-	m.Lock()  // Will block until lock can be acquired
+    m.Lock()  // Will block until lock can be acquired
 
-	// Code here is protected by the mutex
+    // Code here is protected by the mutex
 
-	m.Unlock()
+    m.Unlock()
 }
 ```
 一旦某个进程获得文件锁，未释放文件锁前其它进程在尝试获得锁的时候将会阻塞

@@ -452,23 +452,23 @@ OUTPUT -> KUBE-SERVICES -> KUBE-NODE-PORT -> INPUT --> KUBE-FIREWALL --> POSTROU
 k8s.io/kubernetes/cmd/kube-proxy/proxy.go
 
 func main() {
-	rand.Seed(time.Now().UnixNano())
+    rand.Seed(time.Now().UnixNano())
 
-	command := app.NewProxyCommand()
+    command := app.NewProxyCommand()
 
-	// TODO: once we switch everything over to Cobra commands, we can go back to calling
-	// utilflag.InitFlags() (by removing its pflag.Parse() call). For now, we have to set the
-	// normalize func and add the go flag set by hand.
-	pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
-	pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
-	// utilflag.InitFlags()
-	logs.InitLogs()
-	defer logs.FlushLogs()
+    // TODO: once we switch everything over to Cobra commands, we can go back to calling
+    // utilflag.InitFlags() (by removing its pflag.Parse() call). For now, we have to set the
+    // normalize func and add the go flag set by hand.
+    pflag.CommandLine.SetNormalizeFunc(cliflag.WordSepNormalizeFunc)
+    pflag.CommandLine.AddGoFlagSet(goflag.CommandLine)
+    // utilflag.InitFlags()
+    logs.InitLogs()
+    defer logs.FlushLogs()
 
-	if err := command.Execute(); err != nil {
-		fmt.Fprintf(os.Stderr, "error: %v\n", err)
-		os.Exit(1)
-	}
+    if err := command.Execute(); err != nil {
+        fmt.Fprintf(os.Stderr, "error: %v\n", err)
+        os.Exit(1)
+    }
 }
 ```
 
@@ -477,235 +477,235 @@ func main() {
 k8s.io/kubernetes/cmd/kube-proxy/app/server.go
 
 func (o *Options) Run() error {
-	defer close(o.errCh)   
+    defer close(o.errCh)   
     // 配置写到文件
-	if len(o.WriteConfigTo) > 0 {
-		return o.writeConfigFile()
-	}
+    if len(o.WriteConfigTo) > 0 {
+        return o.writeConfigFile()
+    }
     // 初始化proxyServer对象
-	proxyServer, err := NewProxyServer(o)
-	if err != nil {
-		return err
-	}
+    proxyServer, err := NewProxyServer(o)
+    if err != nil {
+        return err
+    }
     // 如果为true，执行
-	if o.CleanupAndExit {
-		return proxyServer.CleanupAndExit()
-	}
+    if o.CleanupAndExit {
+        return proxyServer.CleanupAndExit()
+    }
 
-	o.proxyServer = proxyServer
-	return o.runLoop()
+    o.proxyServer = proxyServer
+    return o.runLoop()
 }
 ```
 
 NewProxyServer函数 - 初始化proxyServer对象
 ```
 func newProxyServer(
-	config *proxyconfigapi.KubeProxyConfiguration,
-	cleanupAndExit bool,
-	scheme *runtime.Scheme,
-	master string) (*ProxyServer, error) {
+    config *proxyconfigapi.KubeProxyConfiguration,
+    cleanupAndExit bool,
+    scheme *runtime.Scheme,
+    master string) (*ProxyServer, error) {
     // config必须有值
-	if config == nil {
-		return nil, errors.New("config is required")
-	}
+    if config == nil {
+        return nil, errors.New("config is required")
+    }
     // 初始化configz.Config对象
-	if c, err := configz.New(proxyconfigapi.GroupName); err == nil {
-		c.Set(config)
-	} else {
-		return nil, fmt.Errorf("unable to register configz: %s", err)
-	}
+    if c, err := configz.New(proxyconfigapi.GroupName); err == nil {
+        c.Set(config)
+    } else {
+        return nil, fmt.Errorf("unable to register configz: %s", err)
+    }
     // 支持ipv4,ipv6
-	protocol := utiliptables.ProtocolIpv4
-	if net.ParseIP(config.BindAddress).To4() == nil {
-		klog.V(0).Infof("IPv6 bind address (%s), assume IPv6 operation", config.BindAddress)
-		protocol = utiliptables.ProtocolIpv6
-	}
+    protocol := utiliptables.ProtocolIpv4
+    if net.ParseIP(config.BindAddress).To4() == nil {
+        klog.V(0).Infof("IPv6 bind address (%s), assume IPv6 operation", config.BindAddress)
+        protocol = utiliptables.ProtocolIpv6
+    }
     // 初始化变量
-	var iptInterface utiliptables.Interface
-	var ipvsInterface utilipvs.Interface
-	var kernelHandler ipvs.KernelHandler
-	var ipsetInterface utilipset.Interface
-	var dbus utildbus.Interface
+    var iptInterface utiliptables.Interface
+    var ipvsInterface utilipvs.Interface
+    var kernelHandler ipvs.KernelHandler
+    var ipsetInterface utilipset.Interface
+    var dbus utildbus.Interface
 
     // 封装了os/exec
-	// Create a iptables utils.
-	execer := exec.New()
+    // Create a iptables utils.
+    execer := exec.New()
 
     // 封装了github.com/godbus/dbus，一个与D-Bus交互的golang库
-	dbus = utildbus.New()
+    dbus = utildbus.New()
     // 初始化操作iptables的对象，针对iptables版本做了check
-	iptInterface = utiliptables.New(execer, dbus, protocol)
+    iptInterface = utiliptables.New(execer, dbus, protocol)
     // 初始化操作ipvs模块的对象
-	kernelHandler = ipvs.NewLinuxKernelHandler()
+    kernelHandler = ipvs.NewLinuxKernelHandler()
     // 初始化操作ipset的对象
-	ipsetInterface = utilipset.New(execer)
+    ipsetInterface = utilipset.New(execer)
     // 检查ipvs，ipset版本；会尝试在kube-proxy容器里自动加载ipvs所需模块
-	canUseIPVS, _ := ipvs.CanUseIPVSProxier(kernelHandler, ipsetInterface)
-	if canUseIPVS {
+    canUseIPVS, _ := ipvs.CanUseIPVSProxier(kernelHandler, ipsetInterface)
+    if canUseIPVS {
         // 初始化操作ipvs的对象
-		ipvsInterface = utilipvs.New(execer)
-	}
+        ipvsInterface = utilipvs.New(execer)
+    }
 
-	// We omit creation of pretty much everything if we run in cleanup mode
-	if cleanupAndExit {
-		return &ProxyServer{
-			execer:         execer,
-			IptInterface:   iptInterface,
-			IpvsInterface:  ipvsInterface,
-			IpsetInterface: ipsetInterface,
-		}, nil
-	}
+    // We omit creation of pretty much everything if we run in cleanup mode
+    if cleanupAndExit {
+        return &ProxyServer{
+            execer:         execer,
+            IptInterface:   iptInterface,
+            IpvsInterface:  ipvsInterface,
+            IpsetInterface: ipsetInterface,
+        }, nil
+    }
     // 初始化clientset
-	client, eventClient, err := createClients(config.ClientConnection, master)
-	if err != nil {
-		return nil, err
-	}
+    client, eventClient, err := createClients(config.ClientConnection, master)
+    if err != nil {
+        return nil, err
+    }
 
-	// Create event recorder
-	hostname, err := utilnode.GetHostname(config.HostnameOverride)
-	if err != nil {
-		return nil, err
-	}
-	eventBroadcaster := record.NewBroadcaster()
-	recorder := eventBroadcaster.NewRecorder(scheme, v1.EventSource{Component: "kube-proxy", Host: hostname})
+    // Create event recorder
+    hostname, err := utilnode.GetHostname(config.HostnameOverride)
+    if err != nil {
+        return nil, err
+    }
+    eventBroadcaster := record.NewBroadcaster()
+    recorder := eventBroadcaster.NewRecorder(scheme, v1.EventSource{Component: "kube-proxy", Host: hostname})
 
-	nodeRef := &v1.ObjectReference{
-		Kind:      "Node",
-		Name:      hostname,
-		UID:       types.UID(hostname),
-		Namespace: "",
-	}
+    nodeRef := &v1.ObjectReference{
+        Kind:      "Node",
+        Name:      hostname,
+        UID:       types.UID(hostname),
+        Namespace: "",
+    }
 
-	var healthzServer *healthcheck.HealthzServer
-	var healthzUpdater healthcheck.HealthzUpdater
-	if len(config.HealthzBindAddress) > 0 {
-		healthzServer = healthcheck.NewDefaultHealthzServer(config.HealthzBindAddress, 2*config.IPTables.SyncPeriod.Duration, recorder, nodeRef)
-		healthzUpdater = healthzServer
-	}
+    var healthzServer *healthcheck.HealthzServer
+    var healthzUpdater healthcheck.HealthzUpdater
+    if len(config.HealthzBindAddress) > 0 {
+        healthzServer = healthcheck.NewDefaultHealthzServer(config.HealthzBindAddress, 2*config.IPTables.SyncPeriod.Duration, recorder, nodeRef)
+        healthzUpdater = healthzServer
+    }
 
-	var proxier proxy.ProxyProvider
-	var serviceEventHandler proxyconfig.ServiceHandler
-	var endpointsEventHandler proxyconfig.EndpointsHandler
+    var proxier proxy.ProxyProvider
+    var serviceEventHandler proxyconfig.ServiceHandler
+    var endpointsEventHandler proxyconfig.EndpointsHandler
 
     // 获取kube-proxy模式，不指定的走iptables模式；检测该模式前置条件失败的话会尝试下一个模式
     // 顺序依次为ipvs -> iptables -> usernamespace
-	proxyMode := getProxyMode(string(config.Mode), iptInterface, kernelHandler, ipsetInterface, iptables.LinuxKernelCompatTester{})
-	nodeIP := net.ParseIP(config.BindAddress)
-	if nodeIP.IsUnspecified() {
-		nodeIP = utilnode.GetNodeIP(client, hostname)
-	}
-	if proxyMode == proxyModeIPTables {
-		klog.V(0).Info("Using iptables Proxier.")
-		if config.IPTables.MasqueradeBit == nil {
-			// MasqueradeBit must be specified or defaulted.
-			return nil, fmt.Errorf("unable to read IPTables MasqueradeBit from config")
-		}
+    proxyMode := getProxyMode(string(config.Mode), iptInterface, kernelHandler, ipsetInterface, iptables.LinuxKernelCompatTester{})
+    nodeIP := net.ParseIP(config.BindAddress)
+    if nodeIP.IsUnspecified() {
+        nodeIP = utilnode.GetNodeIP(client, hostname)
+    }
+    if proxyMode == proxyModeIPTables {
+        klog.V(0).Info("Using iptables Proxier.")
+        if config.IPTables.MasqueradeBit == nil {
+            // MasqueradeBit must be specified or defaulted.
+            return nil, fmt.Errorf("unable to read IPTables MasqueradeBit from config")
+        }
         // 初始化iptables proxier对象
-		// TODO this has side effects that should only happen when Run() is invoked.
-		proxierIPTables, err := iptables.NewProxier(
-			iptInterface,
-			utilsysctl.New(),
-			execer,
-			config.IPTables.SyncPeriod.Duration,
-			config.IPTables.MinSyncPeriod.Duration,
-			config.IPTables.MasqueradeAll,
-			int(*config.IPTables.MasqueradeBit),
-			config.ClusterCIDR,
-			hostname,
-			nodeIP,
-			recorder,
-			healthzUpdater,
-			config.NodePortAddresses,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create proxier: %v", err)
-		}
-		metrics.RegisterMetrics()
-		proxier = proxierIPTables
-		serviceEventHandler = proxierIPTables
-		endpointsEventHandler = proxierIPTables
-	} else if proxyMode == proxyModeIPVS {
-		klog.V(0).Info("Using ipvs Proxier.")
+        // TODO this has side effects that should only happen when Run() is invoked.
+        proxierIPTables, err := iptables.NewProxier(
+            iptInterface,
+            utilsysctl.New(),
+            execer,
+            config.IPTables.SyncPeriod.Duration,
+            config.IPTables.MinSyncPeriod.Duration,
+            config.IPTables.MasqueradeAll,
+            int(*config.IPTables.MasqueradeBit),
+            config.ClusterCIDR,
+            hostname,
+            nodeIP,
+            recorder,
+            healthzUpdater,
+            config.NodePortAddresses,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("unable to create proxier: %v", err)
+        }
+        metrics.RegisterMetrics()
+        proxier = proxierIPTables
+        serviceEventHandler = proxierIPTables
+        endpointsEventHandler = proxierIPTables
+    } else if proxyMode == proxyModeIPVS {
+        klog.V(0).Info("Using ipvs Proxier.")
         // 初始化ipvs proxier对象
-		proxierIPVS, err := ipvs.NewProxier(
-			iptInterface,
-			ipvsInterface,
-			ipsetInterface,
-			utilsysctl.New(),
-			execer,
-			config.IPVS.SyncPeriod.Duration,
-			config.IPVS.MinSyncPeriod.Duration,
-			config.IPVS.ExcludeCIDRs,
-			config.IPVS.StrictARP,
-			config.IPTables.MasqueradeAll,
-			int(*config.IPTables.MasqueradeBit),
-			config.ClusterCIDR,
-			hostname,
-			nodeIP,
-			recorder,
-			healthzServer,
-			config.IPVS.Scheduler,
-			config.NodePortAddresses,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create proxier: %v", err)
-		}
-		metrics.RegisterMetrics()
-		proxier = proxierIPVS
-		serviceEventHandler = proxierIPVS
-		endpointsEventHandler = proxierIPVS
-	} else {
-		klog.V(0).Info("Using userspace Proxier.")
-		// This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
-		// our config.EndpointsConfigHandler.
-		loadBalancer := userspace.NewLoadBalancerRR()
-		// set EndpointsConfigHandler to our loadBalancer
-		endpointsEventHandler = loadBalancer
+        proxierIPVS, err := ipvs.NewProxier(
+            iptInterface,
+            ipvsInterface,
+            ipsetInterface,
+            utilsysctl.New(),
+            execer,
+            config.IPVS.SyncPeriod.Duration,
+            config.IPVS.MinSyncPeriod.Duration,
+            config.IPVS.ExcludeCIDRs,
+            config.IPVS.StrictARP,
+            config.IPTables.MasqueradeAll,
+            int(*config.IPTables.MasqueradeBit),
+            config.ClusterCIDR,
+            hostname,
+            nodeIP,
+            recorder,
+            healthzServer,
+            config.IPVS.Scheduler,
+            config.NodePortAddresses,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("unable to create proxier: %v", err)
+        }
+        metrics.RegisterMetrics()
+        proxier = proxierIPVS
+        serviceEventHandler = proxierIPVS
+        endpointsEventHandler = proxierIPVS
+    } else {
+        klog.V(0).Info("Using userspace Proxier.")
+        // This is a proxy.LoadBalancer which NewProxier needs but has methods we don't need for
+        // our config.EndpointsConfigHandler.
+        loadBalancer := userspace.NewLoadBalancerRR()
+        // set EndpointsConfigHandler to our loadBalancer
+        endpointsEventHandler = loadBalancer
 
-		// TODO this has side effects that should only happen when Run() is invoked.
-		proxierUserspace, err := userspace.NewProxier(
-			loadBalancer,
-			net.ParseIP(config.BindAddress),
-			iptInterface,
-			execer,
-			*utilnet.ParsePortRangeOrDie(config.PortRange),
-			config.IPTables.SyncPeriod.Duration,
-			config.IPTables.MinSyncPeriod.Duration,
-			config.UDPIdleTimeout.Duration,
-			config.NodePortAddresses,
-		)
-		if err != nil {
-			return nil, fmt.Errorf("unable to create proxier: %v", err)
-		}
-		serviceEventHandler = proxierUserspace
-		proxier = proxierUserspace
-	}
+        // TODO this has side effects that should only happen when Run() is invoked.
+        proxierUserspace, err := userspace.NewProxier(
+            loadBalancer,
+            net.ParseIP(config.BindAddress),
+            iptInterface,
+            execer,
+            *utilnet.ParsePortRangeOrDie(config.PortRange),
+            config.IPTables.SyncPeriod.Duration,
+            config.IPTables.MinSyncPeriod.Duration,
+            config.UDPIdleTimeout.Duration,
+            config.NodePortAddresses,
+        )
+        if err != nil {
+            return nil, fmt.Errorf("unable to create proxier: %v", err)
+        }
+        serviceEventHandler = proxierUserspace
+        proxier = proxierUserspace
+    }
 
-	iptInterface.AddReloadFunc(proxier.Sync)
+    iptInterface.AddReloadFunc(proxier.Sync)
 
-	return &ProxyServer{
-		Client:                 client,
-		EventClient:            eventClient,
-		IptInterface:           iptInterface,
-		IpvsInterface:          ipvsInterface,
-		IpsetInterface:         ipsetInterface,
-		execer:                 execer,
-		Proxier:                proxier,
-		Broadcaster:            eventBroadcaster,
-		Recorder:               recorder,
-		ConntrackConfiguration: config.Conntrack,
-		Conntracker:            &realConntracker{},
-		ProxyMode:              proxyMode,
-		NodeRef:                nodeRef,
-		MetricsBindAddress:     config.MetricsBindAddress,
-		EnableProfiling:        config.EnableProfiling,
-		OOMScoreAdj:            config.OOMScoreAdj,
-		ResourceContainer:      config.ResourceContainer,
-		ConfigSyncPeriod:       config.ConfigSyncPeriod.Duration,
-		ServiceEventHandler:    serviceEventHandler,
-		EndpointsEventHandler:  endpointsEventHandler,
-		HealthzServer:          healthzServer,
-	}, nil
+    return &ProxyServer{
+        Client:                 client,
+        EventClient:            eventClient,
+        IptInterface:           iptInterface,
+        IpvsInterface:          ipvsInterface,
+        IpsetInterface:         ipsetInterface,
+        execer:                 execer,
+        Proxier:                proxier,
+        Broadcaster:            eventBroadcaster,
+        Recorder:               recorder,
+        ConntrackConfiguration: config.Conntrack,
+        Conntracker:            &realConntracker{},
+        ProxyMode:              proxyMode,
+        NodeRef:                nodeRef,
+        MetricsBindAddress:     config.MetricsBindAddress,
+        EnableProfiling:        config.EnableProfiling,
+        OOMScoreAdj:            config.OOMScoreAdj,
+        ResourceContainer:      config.ResourceContainer,
+        ConfigSyncPeriod:       config.ConfigSyncPeriod.Duration,
+        ServiceEventHandler:    serviceEventHandler,
+        EndpointsEventHandler:  endpointsEventHandler,
+        HealthzServer:          healthzServer,
+    }, nil
 }
 ```
 
@@ -716,10 +716,10 @@ func newProxyServer(
 ```mermaid
 graph TD
 A[o.runLoop] -->B(o.proxyServer.Run) 
-		B --> C(s.Proxier.SyncLoop) 
-	  C --> D(proxier.syncRunner.Loop)
-	  D --> E(bfr.tryRun/bfr.fn)
-	  E --> F{模式mode}
+        B --> C(s.Proxier.SyncLoop) 
+      C --> D(proxier.syncRunner.Loop)
+      D --> E(bfr.tryRun/bfr.fn)
+      E --> F{模式mode}
     F -->|mode=iptables| G[proxier.syncProxyRules]
     F -->|mode=ipvs| H[proxier.syncProxyRules]
     F -->|mode=usernamespace| I[proxier.syncProxyRules]

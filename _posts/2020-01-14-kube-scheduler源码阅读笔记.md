@@ -89,35 +89,35 @@ algorithmprovider.ApplyFeatureGates()
 k8s.io/kubernetes/pkg/scheduler/algorithmprovider/defaults
 
 func defaultPredicates() sets.String {
-	return sets.NewString(
-		predicates.NoVolumeZoneConflictPred,
-		predicates.MaxEBSVolumeCountPred,
-		predicates.MaxGCEPDVolumeCountPred,
-		predicates.MaxAzureDiskVolumeCountPred,
-		predicates.MaxCSIVolumeCountPred,
-		predicates.MatchInterPodAffinityPred,
-		predicates.NoDiskConflictPred,
-		predicates.GeneralPred,
-		predicates.CheckNodeMemoryPressurePred,
-		predicates.CheckNodeDiskPressurePred,
-		predicates.CheckNodePIDPressurePred,
-		predicates.CheckNodeConditionPred,
-		predicates.PodToleratesNodeTaintsPred,
-		predicates.CheckVolumeBindingPred,
-	)
+    return sets.NewString(
+        predicates.NoVolumeZoneConflictPred,
+        predicates.MaxEBSVolumeCountPred,
+        predicates.MaxGCEPDVolumeCountPred,
+        predicates.MaxAzureDiskVolumeCountPred,
+        predicates.MaxCSIVolumeCountPred,
+        predicates.MatchInterPodAffinityPred,
+        predicates.NoDiskConflictPred,
+        predicates.GeneralPred,
+        predicates.CheckNodeMemoryPressurePred,
+        predicates.CheckNodeDiskPressurePred,
+        predicates.CheckNodePIDPressurePred,
+        predicates.CheckNodeConditionPred,
+        predicates.PodToleratesNodeTaintsPred,
+        predicates.CheckVolumeBindingPred,
+    )
 }
 
 func defaultPriorities() sets.String {
-	return sets.NewString(
-		priorities.SelectorSpreadPriority,
-		priorities.InterPodAffinityPriority,
-		priorities.LeastRequestedPriority,
-		priorities.BalancedResourceAllocation,
-		priorities.NodePreferAvoidPodsPriority,
-		priorities.NodeAffinityPriority,
-		priorities.TaintTolerationPriority,
-		priorities.ImageLocalityPriority,
-	)
+    return sets.NewString(
+        priorities.SelectorSpreadPriority,
+        priorities.InterPodAffinityPriority,
+        priorities.LeastRequestedPriority,
+        priorities.BalancedResourceAllocation,
+        priorities.NodePreferAvoidPodsPriority,
+        priorities.NodeAffinityPriority,
+        priorities.TaintTolerationPriority,
+        priorities.ImageLocalityPriority,
+    )
 }
 ```
 
@@ -131,13 +131,13 @@ k8s.io/kubernetes/pkg/scheduler/algorithm/predicates/predicates.go
 // The order is based on the restrictiveness & complexity of predicates.
 // Design doc: https://github.com/kubernetes/community/blob/master/contributors/design-proposals/scheduling/predicates-ordering.md
 var (
-	predicatesOrdering = []string{CheckNodeConditionPred, CheckNodeUnschedulablePred,
-		GeneralPred, HostNamePred, PodFitsHostPortsPred,
-		MatchNodeSelectorPred, PodFitsResourcesPred, NoDiskConflictPred,
-		PodToleratesNodeTaintsPred, PodToleratesNodeNoExecuteTaintsPred, CheckNodeLabelPresencePred,
-		CheckServiceAffinityPred, MaxEBSVolumeCountPred, MaxGCEPDVolumeCountPred, MaxCSIVolumeCountPred,
-		MaxAzureDiskVolumeCountPred, MaxCinderVolumeCountPred, CheckVolumeBindingPred, NoVolumeZoneConflictPred,
-		CheckNodeMemoryPressurePred, CheckNodePIDPressurePred, CheckNodeDiskPressurePred, MatchInterPodAffinityPred}
+    predicatesOrdering = []string{CheckNodeConditionPred, CheckNodeUnschedulablePred,
+        GeneralPred, HostNamePred, PodFitsHostPortsPred,
+        MatchNodeSelectorPred, PodFitsResourcesPred, NoDiskConflictPred,
+        PodToleratesNodeTaintsPred, PodToleratesNodeNoExecuteTaintsPred, CheckNodeLabelPresencePred,
+        CheckServiceAffinityPred, MaxEBSVolumeCountPred, MaxGCEPDVolumeCountPred, MaxCSIVolumeCountPred,
+        MaxAzureDiskVolumeCountPred, MaxCinderVolumeCountPred, CheckVolumeBindingPred, NoVolumeZoneConflictPred,
+        CheckNodeMemoryPressurePred, CheckNodePIDPressurePred, CheckNodeDiskPressurePred, MatchInterPodAffinityPred}
 )
 ```
 
@@ -154,11 +154,11 @@ var (
 ```
 // Run begins watching and scheduling. It waits for cache to be synced, then starts a goroutine and returns immediately.
 func (sched *Scheduler) Run() {
-	if !sched.config.WaitForCacheSync() {
-		return
-	}
+    if !sched.config.WaitForCacheSync() {
+        return
+    }
 
-	go wait.Until(sched.scheduleOne, 0, sched.config.StopEverything)
+    go wait.Until(sched.scheduleOne, 0, sched.config.StopEverything)
 }
 ```
 
@@ -179,13 +179,13 @@ scheduleOne函数的过程：
 // schedule implements the scheduling algorithm and returns the suggested result(host,
 // evaluated nodes number,feasible nodes number).
 func (sched *Scheduler) schedule(pod *v1.Pod) (core.ScheduleResult, error) {
-	result, err := sched.config.Algorithm.Schedule(pod, sched.config.NodeLister)
-	if err != nil {
-		pod = pod.DeepCopy()
-		sched.recordSchedulingFailure(pod, err, v1.PodReasonUnschedulable, err.Error())
-		return core.ScheduleResult{}, err
-	}
-	return result, err
+    result, err := sched.config.Algorithm.Schedule(pod, sched.config.NodeLister)
+    if err != nil {
+        pod = pod.DeepCopy()
+        sched.recordSchedulingFailure(pod, err, v1.PodReasonUnschedulable, err.Error())
+        return core.ScheduleResult{}, err
+    }
+    return result, err
 }
 ```
 
@@ -195,18 +195,18 @@ sched.config.Algorithm.Schedule, Algorithm是一个接口，包含4个方法：
 // onto machines.
 // TODO: Rename this type.
 type ScheduleAlgorithm interface {
-	Schedule(*v1.Pod, algorithm.NodeLister) (scheduleResult ScheduleResult, err error)
-	// Preempt receives scheduling errors for a pod and tries to create room for
-	// the pod by preempting lower priority pods if possible.
-	// It returns the node where preemption happened, a list of preempted pods, a
-	// list of pods whose nominated node name should be removed, and error if any.
-	Preempt(*v1.Pod, algorithm.NodeLister, error) (selectedNode *v1.Node, preemptedPods []*v1.Pod, cleanupNominatedPods []*v1.Pod, err error)
-	// Predicates() returns a pointer to a map of predicate functions. This is
-	// exposed for testing.
-	Predicates() map[string]predicates.FitPredicate
-	// Prioritizers returns a slice of priority config. This is exposed for
-	// testing.
-	Prioritizers() []priorities.PriorityConfig
+    Schedule(*v1.Pod, algorithm.NodeLister) (scheduleResult ScheduleResult, err error)
+    // Preempt receives scheduling errors for a pod and tries to create room for
+    // the pod by preempting lower priority pods if possible.
+    // It returns the node where preemption happened, a list of preempted pods, a
+    // list of pods whose nominated node name should be removed, and error if any.
+    Preempt(*v1.Pod, algorithm.NodeLister, error) (selectedNode *v1.Node, preemptedPods []*v1.Pod, cleanupNominatedPods []*v1.Pod, err error)
+    // Predicates() returns a pointer to a map of predicate functions. This is
+    // exposed for testing.
+    Predicates() map[string]predicates.FitPredicate
+    // Prioritizers returns a slice of priority config. This is exposed for
+    // testing.
+    Prioritizers() []priorities.PriorityConfig
 }
 ```
 genericScheduler是这个接口的具体实现
@@ -216,85 +216,85 @@ genericScheduler是这个接口的具体实现
 // If it succeeds, it will return the name of the node.
 // If it fails, it will return a FitError error with reasons.
 func (g *genericScheduler) Schedule(pod *v1.Pod, nodeLister algorithm.NodeLister) (result ScheduleResult, err error) {
-	trace := utiltrace.New(fmt.Sprintf("Scheduling %s/%s", pod.Namespace, pod.Name))
-	defer trace.LogIfLong(100 * time.Millisecond)
+    trace := utiltrace.New(fmt.Sprintf("Scheduling %s/%s", pod.Namespace, pod.Name))
+    defer trace.LogIfLong(100 * time.Millisecond)
     // 检测pod pvc
-	if err := podPassesBasicChecks(pod, g.pvcLister); err != nil {
-		return result, err
-	}
+    if err := podPassesBasicChecks(pod, g.pvcLister); err != nil {
+        return result, err
+    }
     // 获取节点列表
-	nodes, err := nodeLister.List()
-	if err != nil {
-		return result, err
-	}
-	if len(nodes) == 0 {
-		return result, ErrNoNodesAvailable
-	}
+    nodes, err := nodeLister.List()
+    if err != nil {
+        return result, err
+    }
+    if len(nodes) == 0 {
+        return result, ErrNoNodesAvailable
+    }
     // 对缓存的NodeInfo map做快照
-	if err := g.snapshot(); err != nil {
-		return result, err
-	}
+    if err := g.snapshot(); err != nil {
+        return result, err
+    }
     // 预选阶段
-	trace.Step("Computing predicates")
-	startPredicateEvalTime := time.Now()
-	filteredNodes, failedPredicateMap, err := g.findNodesThatFit(pod, nodes)
-	if err != nil {
-		return result, err
-	}
+    trace.Step("Computing predicates")
+    startPredicateEvalTime := time.Now()
+    filteredNodes, failedPredicateMap, err := g.findNodesThatFit(pod, nodes)
+    if err != nil {
+        return result, err
+    }
 
-	if len(filteredNodes) == 0 {
-		return result, &FitError{
-			Pod:              pod,
-			NumAllNodes:      len(nodes),
-			FailedPredicates: failedPredicateMap,
-		}
-	}
-	metrics.SchedulingAlgorithmPredicateEvaluationDuration.Observe(metrics.SinceInSeconds(startPredicateEvalTime))
-	metrics.DeprecatedSchedulingAlgorithmPredicateEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPredicateEvalTime))
-	metrics.SchedulingLatency.WithLabelValues(metrics.PredicateEvaluation).Observe(metrics.SinceInSeconds(startPredicateEvalTime))
-	metrics.DeprecatedSchedulingLatency.WithLabelValues(metrics.PredicateEvaluation).Observe(metrics.SinceInSeconds(startPredicateEvalTime))
+    if len(filteredNodes) == 0 {
+        return result, &FitError{
+            Pod:              pod,
+            NumAllNodes:      len(nodes),
+            FailedPredicates: failedPredicateMap,
+        }
+    }
+    metrics.SchedulingAlgorithmPredicateEvaluationDuration.Observe(metrics.SinceInSeconds(startPredicateEvalTime))
+    metrics.DeprecatedSchedulingAlgorithmPredicateEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPredicateEvalTime))
+    metrics.SchedulingLatency.WithLabelValues(metrics.PredicateEvaluation).Observe(metrics.SinceInSeconds(startPredicateEvalTime))
+    metrics.DeprecatedSchedulingLatency.WithLabelValues(metrics.PredicateEvaluation).Observe(metrics.SinceInSeconds(startPredicateEvalTime))
     // 打分阶段
-	trace.Step("Prioritizing")
-	startPriorityEvalTime := time.Now()
-	// When only one node after predicate, just use it.
-	if len(filteredNodes) == 1 {
-		metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInSeconds(startPriorityEvalTime))
-		metrics.DeprecatedSchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime))
-		return ScheduleResult{
-			SuggestedHost:  filteredNodes[0].Name,
-			EvaluatedNodes: 1 + len(failedPredicateMap),
-			FeasibleNodes:  1,
-		}, nil
-	}
+    trace.Step("Prioritizing")
+    startPriorityEvalTime := time.Now()
+    // When only one node after predicate, just use it.
+    if len(filteredNodes) == 1 {
+        metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInSeconds(startPriorityEvalTime))
+        metrics.DeprecatedSchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime))
+        return ScheduleResult{
+            SuggestedHost:  filteredNodes[0].Name,
+            EvaluatedNodes: 1 + len(failedPredicateMap),
+            FeasibleNodes:  1,
+        }, nil
+    }
 
-	metaPrioritiesInterface := g.priorityMetaProducer(pod, g.nodeInfoSnapshot.NodeInfoMap)
+    metaPrioritiesInterface := g.priorityMetaProducer(pod, g.nodeInfoSnapshot.NodeInfoMap)
     // g.extenders就是scheduler extender框架扩展的自定义调度策略
-	priorityList, err := PrioritizeNodes(pod, g.nodeInfoSnapshot.NodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders)
-	if err != nil {
-		return result, err
-	}
-	metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInSeconds(startPriorityEvalTime))
-	metrics.DeprecatedSchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime))
-	metrics.SchedulingLatency.WithLabelValues(metrics.PriorityEvaluation).Observe(metrics.SinceInSeconds(startPriorityEvalTime))
-	metrics.DeprecatedSchedulingLatency.WithLabelValues(metrics.PriorityEvaluation).Observe(metrics.SinceInSeconds(startPriorityEvalTime))
+    priorityList, err := PrioritizeNodes(pod, g.nodeInfoSnapshot.NodeInfoMap, metaPrioritiesInterface, g.prioritizers, filteredNodes, g.extenders)
+    if err != nil {
+        return result, err
+    }
+    metrics.SchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInSeconds(startPriorityEvalTime))
+    metrics.DeprecatedSchedulingAlgorithmPriorityEvaluationDuration.Observe(metrics.SinceInMicroseconds(startPriorityEvalTime))
+    metrics.SchedulingLatency.WithLabelValues(metrics.PriorityEvaluation).Observe(metrics.SinceInSeconds(startPriorityEvalTime))
+    metrics.DeprecatedSchedulingLatency.WithLabelValues(metrics.PriorityEvaluation).Observe(metrics.SinceInSeconds(startPriorityEvalTime))
 
-	trace.Step("Selecting host")
+    trace.Step("Selecting host")
     // 选出分数最高的节点
-	host, err := g.selectHost(priorityList)
-	return ScheduleResult{
-		SuggestedHost:  host,
-		EvaluatedNodes: len(filteredNodes) + len(failedPredicateMap),
-		FeasibleNodes:  len(filteredNodes),
-	}, err
+    host, err := g.selectHost(priorityList)
+    return ScheduleResult{
+        SuggestedHost:  host,
+        EvaluatedNodes: len(filteredNodes) + len(failedPredicateMap),
+        FeasibleNodes:  len(filteredNodes),
+    }, err
 }
 ```
 
 预选阶段实际调用的是findNodesThatFit函数
 ```
 // 并发16个goroutine检查pod与node是否合适
-	// Stops searching for more nodes once the configured number of feasible nodes
-		// are found.
-		workqueue.ParallelizeUntil(ctx, 16, int(allNodes), checkNode)
+    // Stops searching for more nodes once the configured number of feasible nodes
+        // are found.
+        workqueue.ParallelizeUntil(ctx, 16, int(allNodes), checkNode)
 
 ```
 
