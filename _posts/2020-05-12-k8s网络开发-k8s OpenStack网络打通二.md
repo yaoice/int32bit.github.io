@@ -7,7 +7,7 @@ tags:
      - k8s
 ---
 
-继上篇[k8s、OpenStack网络打通(一)](http://www.iceyao.com.cn/2020/05/06/%E5%A5%BD%E8%AE%B0%E6%80%A7%E4%B8%8D%E5%A6%82%E7%83%82%E7%AC%94%E5%A4%B4-k8s-OpenStack%E7%BD%91%E7%BB%9C%E6%89%93%E9%80%9A%E4%B8%80/),
+继上篇[k8s、OpenStack网络打通(一)](http://www.iceyao.com.cn/2020/05/06/k8s%E7%BD%91%E7%BB%9C%E5%BC%80%E5%8F%91-k8s-OpenStack%E7%BD%91%E7%BB%9C%E6%89%93%E9%80%9A%E4%B8%80/),
 已经实现了一个neutron-ipam, 接下来就是具体cni插件实现容器添加/卸载网卡的功能.
 
 ### ipvlan模式
