@@ -13,10 +13,10 @@ default_header_image: img/post-bg-universe.png
 # SNS settings
 RSS: true
 weibo_username:     2434627421
-#zhihu_username:     ice
+zhihu_username:     Ice
 github_username:    yaoice
-#twitter_username:  yaoice
-#facebook_username:  yaoice
+twitter_username:  ice70752991
+facebook_username:  icingyao
 
 # enable code mermaid
 mermaid_enable: true
@@ -42,7 +42,7 @@ kramdown:
   input: GFM                            # use Github Flavored Markdown !important
 
 # Disqus settings
-disqus_username: yaoice
+disqus_username: iceyao
 # Duoshuo settings
 #duoshuo_username: yaoice
 # Share component is depend on Comment so we can NOT use share only.
@@ -51,11 +51,11 @@ disqus_username: yaoice
 
 # Analytics settings
 # Baidu Analytics
-ba_track_id: 2f615c9fc2d0100e5a6410b950fa688c
+ba_track_id: 53af1cddb0a100f8c796dfee06041554
 
 # Google Analytics
-ga_track_id: 'UA-76500579-1'            # Format: UA-xxxxxx-xx
-ga_domain: yaoice.github.io
+ga_track_id: 'UA-96904743-2'            # Format: UA-xxxxxx-xx
+ga_domain: http://www.iceyao.com.cn/
 
 # Sidebar settings
 sidebar: true                           # whether or not using Sidebar.
