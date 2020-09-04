@@ -1,6 +1,6 @@
 ---
 layout: post
-title: K8s scheduler framework实践
+title: K8s scheduler framework阅读笔记
 subtitle: ""
 catalog: true
 tags:
@@ -858,3 +858,5 @@ func NewServiceAffinity(args *runtime.Unknown, h FrameworkHandle) (Plugin, error
 
 - [https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/](https://kubernetes.io/docs/concepts/scheduling-eviction/scheduling-framework/)
 - [Kubernetes Scheduler Framework 扩展: 1. Coscheduling](https://developer.aliyun.com/article/756016)
+- [https://github.com/NJUPT-ISL/Yoda-Scheduler](https://github.com/NJUPT-ISL/Yoda-Scheduler)
+
