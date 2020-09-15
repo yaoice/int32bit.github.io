@@ -18,7 +18,7 @@ tags:
 
 以下两种场景中的ipvlan工作在l2模式，实际上ipvlan是有三种模式的
 - L2模式下入出流量不会经过host namespace网络，无法支持kube-proxy
-- L3模式但入琉璃那个不经过host namespace网络，无法支持kube-proxy
+- L3模式下入流量不经过host namespace网络，无法支持kube-proxy
 - L3S模式下出入流量均经过host namespace的三层网络，但又会带来以下新的问题：
   - 当service的client和server POD在一个master时，server的response报文会走ipvlan datapath, service访问失败
   - L3S模式下流量从4层进入interface，无法支持kata等安全容器
