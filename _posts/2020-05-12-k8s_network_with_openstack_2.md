@@ -24,6 +24,16 @@ tags:
   - L3S模式下流量从4层进入interface，无法支持kata等安全容器
   - 当client和server在同一node时，导致同一方向流量多次进出host conntrack，datapath复杂，和iptables/ipvs也存在兼容性问题
 
+l2: ipvlan L2模式和macvlan bridge 模式工作原理很相似，父接口作为交换机来转发子接口的数据。
+同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。
+
+l3: ipvlan有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。
+只要父接口相同，即使虚拟机/容器不在同一个网络，也可以互相ping通对方，因为ipvlan会在中间做报文的转发工作。
+L3模式下的虚拟接口不会接收到多播或者广播的报文，所有的 ARP 过程或者其他多播报文都是在底层的父接口完成的
+
+Note: 如果使用L3模式，pod会ping不通网关，因为arp过程都是在父接口完成的，你需要在其宿主机上手动发起arp请求`arping -c 2 -U -I eth0 <pod-ip>`，经测试过一段时间后，
+arp也会失效. 网上还有一种方式是在外部路由器上配置到达pod的路由(受限于硬件，这种方式待验证).
+
 #### OpenStack与K8s独立部署场景
 
 <img src="/img/posts/2020-05-06/k8s_openstack_separate.png"/>
@@ -442,5 +452,7 @@ cni-ipam-neutron无需做改动，还是基于neutron port多辅助IP来实现�
 
 - [https://kubernetes.io/docs/concepts/architecture/cloud-controller/#service-controller](https://kubernetes.io/docs/concepts/architecture/cloud-controller/#service-controller)
 - [Kubernetes网络的IPVlan方案](https://kernel.taobao.org/2019/11/ipvlan-for-kubernete-net/)
+- [ipvlan l2 vs l3区别](https://www.cnblogs.com/menkeyi/p/11374023.html)
+
 
 
