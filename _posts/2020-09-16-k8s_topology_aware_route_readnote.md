@@ -326,6 +326,7 @@ iptables/ipvs下拓扑感知主要处理逻辑，把endpoint根据拓扑key设�
 // Service Topology will not be enabled in the following cases:
 // 1. externalTrafficPolicy=Local (mutually exclusive with service topology).// 2. ServiceTopology is not enabled.
 // 3. EndpointSlice is not enabled (service topology depends on endpoint slice// to get topology information).
+// 与k8s service externalTrafficPolicy=Local特性冲突，FeatureGate开启ServiceTopology和EndpointSliceProxying
 if !svcInfo.OnlyNodeLocalEndpoints() && utilfeature.DefaultFeatureGate.Enabled(features.ServiceTopology) && utilfeature.DefaultFeatureGate.Enabled(features.EndpointSliceProxying) {
     allEndpoints = proxy.FilterTopologyEndpoint(proxier.nodeLabels, svcInfo.TopologyKeys(), allEndpoints)    hasEndpoints = len(allEndpoints) > 0
 }
@@ -339,6 +340,7 @@ func FilterTopologyEndpoint(nodeLabels map[string]string, topologyKeys []string,
 	filteredEndpoint := []Endpoint{}
 
 	if len(nodeLabels) == 0 {
+        // 如果topologyKeys只有一个'*'，直接返回
 		if topologyKeys[len(topologyKeys)-1] == v1.TopologyKeyAny {
 			// edge case: include all endpoints if topology key "Any" specified
 			// when we cannot determine current node's topology.
@@ -353,6 +355,7 @@ func FilterTopologyEndpoint(nodeLabels map[string]string, topologyKeys []string,
 		if key == v1.TopologyKeyAny {
 			return endpoints
 		}
+        // 从节点标签中以该key获取对应的value
 		topologyValue, found := nodeLabels[key]
 		if !found {
 			continue
@@ -360,6 +363,7 @@ func FilterTopologyEndpoint(nodeLabels map[string]string, topologyKeys []string,
 
 		for _, ep := range endpoints {
 			topology := ep.GetTopology()
+            // endpointslices中同样的key获取的value和上述从从节点标签中获取的value做对比
 			if value, found := topology[key]; found && value == topologyValue {
 				filteredEndpoint = append(filteredEndpoint, ep)
 			}
@@ -372,6 +376,120 @@ func FilterTopologyEndpoint(nodeLabels map[string]string, topologyKeys []string,
 }
 ```
 
+### 应用场景
+
+同一个交换机下的节点优先访问，这种场景就不说了。这里要说一种特殊的应用场景，k8s controller都知道，运行在k8s集群内部的话，可以使用in-cluster或out-cluster的认证方式，
+一般都是使用in-cluster+rbac的授权方式，通过内部service跟apiserver通信，default命名空间下的kubernetes服务
+```
+[root@localhost ~]# kubectl get service kubernetes 
+NAME         TYPE        CLUSTER-IP   EXTERNAL-IP   PORT(S)   AGE
+kubernetes   ClusterIP   11.1.252.1   <none>        443/TCP   28d
+```
+
+鉴于k8s controller高可用问题，实际上是在http2中，为了提高网络性能，一个主机只建立一个连接，所有的请求都通过该连接进行，
+默认情况下，即使网络异常，他还是重用这个连接，直到操作系统将连接关闭，而操作系统关闭僵尸连接的时间默认是十几分钟，具体的时间可以调整系统参数
+```
+net.ipv4.tcp_retries2, net.ipv4.tcp_keepalive_time, net.ipv4.tcp_keepalive_probes, net.ipv4.tcp_keepalive_intvl
+```
+
+所有的controller运行在master节点(即kube-apiserver节点)，同个node的controller优先访问本地的apiserver，这样可以大概率避免apiserver不可用，
+导致大批量controller失效. 
+
+default命名空间下的endpoints默认没有带上nodeName的字段，进而导致endpointslices中也没有topology
+```
+[root@localhost kubernetes]# kubectl get endpoints kubernetes  -o yaml
+apiVersion: v1
+kind: Endpoints
+metadata:
+  creationTimestamp: "2020-09-21T01:32:42Z"
+  managedFields:
+  - apiVersion: v1
+    fieldsType: FieldsV1
+    fieldsV1:
+      f:subsets: {}
+    manager: kube-apiserver
+    operation: Update
+    time: "2020-09-21T01:36:34Z"
+  name: kubernetes
+  namespace: default
+  resourceVersion: "6345968"
+  selfLink: /api/v1/namespaces/default/endpoints/kubernetes
+  uid: bbff3c4f-c8b5-42c5-a52a-e43a62de4926
+subsets:
+- addresses:
+  - ip: 192.168.104.111
+  - ip: 192.168.104.117
+  ports:
+  - name: https
+    port: 6443
+    protocol: TCP
+```
+
+default命名空间下的kubernetes service和kubernetes endpoint是由apiserver自动生成，通过修改apiserver代码把endpoint的缺失字段nodeName补上
+```
+# k8s.io/kubernetes/pkg/master/reconcilers/lease.go
+
+func (r *leaseEndpointReconciler) doReconcile(serviceName string, endpointPorts []corev1.EndpointPort, reconcilePorts bool) error {
+    ......
+
+	if !formatCorrect || !ipCorrect {
+		// repopulate the addresses according to the expected IPs from etcd
+		e.Subsets[0].Addresses = make([]corev1.EndpointAddress, len(masterIPs))
+		for ind, ip := range masterIPs {
+            # 增加NodeName
+			e.Subsets[0].Addresses[ind] = corev1.EndpointAddress{IP: ip, NodeName: utilpointer.StringPtr(ip)}
+		}
+```
+```
+// UpdateLease resets the TTL on a master IP in storage
+func (s *storageLeases) UpdateLease(ip string) error {
+	key := path.Join(s.baseKey, ip)
+	return s.storage.GuaranteedUpdate(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, true, nil, func(input kruntime.Object, respMeta storage.ResponseMeta) (kruntime.Object, *uint64, error) {
+		// just make sure we've got the right IP set, and then refresh the TTL
+		existing := input.(*corev1.Endpoints)
+		existing.Subsets = []corev1.EndpointSubset{
+			{
+            # 增加NodeName
+				Addresses: []corev1.EndpointAddress{{IP: ip, NodeName: utilpointer.StringPtr(ip)}},
+			},
+		}
+```
+编译新镜像`GO111MODULE=off KUBE_GIT_TREE_STATE=clean KUBE_GIT_VERSION=v1.18.3 KUBE_BUILD_PLATFORMS=linux/amd64 make release-images`
+
+为default/kubernetes service设置topologyKeys
+```
+# kubectl edit svc kubernetes 
+spec:
+  ......
+  # 新增topologyKeys
+  topologyKeys:
+  - kubernetes.io/hostname
+  - '*'
+```
+
+default/kubernetes endpoint对应的endpointslices有生成topology出来
+```
+# kubectl get endpointslices.discovery.k8s.io kubernetes -o yaml
+addressType: IPv4
+apiVersion: discovery.k8s.io/v1beta1
+endpoints:
+- addresses:
+  - 192.168.104.111
+  conditions:
+    ready: true
+  topology:
+    kubernetes.io/hostname: 192.168.104.111
+- addresses:
+  - 192.168.104.117
+  conditions:
+    ready: true
+  topology:
+    kubernetes.io/hostname: 192.168.104.117
+kind: EndpointSlice
+```
+
+
 ### 参考链接
 
 - [https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/](https://kubernetes.io/docs/concepts/services-networking/endpoint-slices/)
+- [https://www.cnblogs.com/gaorong/p/10925480.html](https://www.cnblogs.com/gaorong/p/10925480.html)
