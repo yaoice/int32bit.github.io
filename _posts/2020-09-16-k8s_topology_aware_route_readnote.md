@@ -198,31 +198,31 @@ featureGates:
 # k8s.io/kubernetes/cmd/kube-proxy/app/server.go
 // Complete completes all the required options.
 func (o *Options) Complete() error {
-	if len(o.ConfigFile) == 0 && len(o.WriteConfigTo) == 0 {
-		klog.Warning("WARNING: all flags other than --config, --write-config-to, and --cleanup are deprecated. Please begin using a config file ASAP.")
-		o.config.HealthzBindAddress = addressFromDeprecatedFlags(o.config.HealthzBindAddress, o.healthzPort)
-		o.config.MetricsBindAddress = addressFromDeprecatedFlags(o.config.MetricsBindAddress, o.metricsPort)
-	}
+    if len(o.ConfigFile) == 0 && len(o.WriteConfigTo) == 0 {
+        klog.Warning("WARNING: all flags other than --config, --write-config-to, and --cleanup are deprecated. Please begin using a config file ASAP.")
+        o.config.HealthzBindAddress = addressFromDeprecatedFlags(o.config.HealthzBindAddress, o.healthzPort)
+        o.config.MetricsBindAddress = addressFromDeprecatedFlags(o.config.MetricsBindAddress, o.metricsPort)
+    }
 
-	// Load the config file here in Complete, so that Validate validates the fully-resolved config.
+    // Load the config file here in Complete, so that Validate validates the fully-resolved config.
     // 如果--config的话，以这个配置文件中的参数为主
-	if len(o.ConfigFile) > 0 {
-		c, err := o.loadConfigFromFile(o.ConfigFile)
-		if err != nil {
-			return err
-		}
-		o.config = c
+    if len(o.ConfigFile) > 0 {
+        c, err := o.loadConfigFromFile(o.ConfigFile)
+        if err != nil {
+            return err
+        }
+        o.config = c
 
-		if err := o.initWatcher(); err != nil {
-			return err
-		}
-	}
+        if err := o.initWatcher(); err != nil {
+            return err
+        }
+    }
     // 仅支持命令行--hostname-override=xxx
-	if err := o.processHostnameOverrideFlag(); err != nil {
-		return err
-	}
+    if err := o.processHostnameOverrideFlag(); err != nil {
+        return err
+    }
 
-	return utilfeature.DefaultMutableFeatureGate.SetFromMap(o.config.FeatureGates)
+    return utilfeature.DefaultMutableFeatureGate.SetFromMap(o.config.FeatureGates)
 }
 ```
 
@@ -284,36 +284,36 @@ KUBE-SEP-AAUL4QSIESCX3CKK  all  --  0.0.0.0/0            0.0.0.0/0            /*
 #### TopologyKeys Validate
 
 ```
-	if len(service.Spec.TopologyKeys) > 0 {
-		topoPath := specPath.Child("topologyKeys")
-		// topologyKeys is mutually exclusive with 'externalTrafficPolicy=Local'
+    if len(service.Spec.TopologyKeys) > 0 {
+        topoPath := specPath.Child("topologyKeys")
+        // topologyKeys is mutually exclusive with 'externalTrafficPolicy=Local'
         // 与externalTrafficPolicy=Local冲突
-		if service.Spec.ExternalTrafficPolicy == core.ServiceExternalTrafficPolicyTypeLocal {
-			allErrs = append(allErrs, field.Forbidden(topoPath, "may not be specified when `externalTrafficPolicy=Local`"))
-		}
+        if service.Spec.ExternalTrafficPolicy == core.ServiceExternalTrafficPolicyTypeLocal {
+            allErrs = append(allErrs, field.Forbidden(topoPath, "may not be specified when `externalTrafficPolicy=Local`"))
+        }
         // TopologyKeys的键不能超过16
-		if len(service.Spec.TopologyKeys) > core.MaxServiceTopologyKeys {
-			allErrs = append(allErrs, field.TooMany(topoPath, len(service.Spec.TopologyKeys), core.MaxServiceTopologyKeys))
-		}
-		topoKeys := sets.NewString()
-		for i, key := range service.Spec.TopologyKeys {
-			keyPath := topoPath.Index(i)
-			if topoKeys.Has(key) {
-				allErrs = append(allErrs, field.Duplicate(keyPath, key))
-			}
-			topoKeys.Insert(key)
-			// "Any" must be the last value specified
+        if len(service.Spec.TopologyKeys) > core.MaxServiceTopologyKeys {
+            allErrs = append(allErrs, field.TooMany(topoPath, len(service.Spec.TopologyKeys), core.MaxServiceTopologyKeys))
+        }
+        topoKeys := sets.NewString()
+        for i, key := range service.Spec.TopologyKeys {
+            keyPath := topoPath.Index(i)
+            if topoKeys.Has(key) {
+                allErrs = append(allErrs, field.Duplicate(keyPath, key))
+            }
+            topoKeys.Insert(key)
+            // "Any" must be the last value specified
             // "*"的键要在最后的位置
-			if key == v1.TopologyKeyAny && i != len(service.Spec.TopologyKeys)-1 {
-				allErrs = append(allErrs, field.Invalid(keyPath, key, `"*" must be the last value specified`))
-			}
-			if key != v1.TopologyKeyAny {
-				for _, msg := range validation.IsQualifiedName(key) {
-					allErrs = append(allErrs, field.Invalid(keyPath, service.Spec.TopologyKeys, msg))
-				}
-			}
-		}
-	}
+            if key == v1.TopologyKeyAny && i != len(service.Spec.TopologyKeys)-1 {
+                allErrs = append(allErrs, field.Invalid(keyPath, key, `"*" must be the last value specified`))
+            }
+            if key != v1.TopologyKeyAny {
+                for _, msg := range validation.IsQualifiedName(key) {
+                    allErrs = append(allErrs, field.Invalid(keyPath, service.Spec.TopologyKeys, msg))
+                }
+            }
+        }
+    }
 ```
 
 #### iptables/ipvs模式 
@@ -332,47 +332,47 @@ if !svcInfo.OnlyNodeLocalEndpoints() && utilfeature.DefaultFeatureGate.Enabled(f
 }
 
 func FilterTopologyEndpoint(nodeLabels map[string]string, topologyKeys []string, endpoints []Endpoint) []Endpoint {
-	// Do not filter endpoints if service has no topology keys.
-	if len(topologyKeys) == 0 {
-		return endpoints
-	}
+    // Do not filter endpoints if service has no topology keys.
+    if len(topologyKeys) == 0 {
+        return endpoints
+    }
 
-	filteredEndpoint := []Endpoint{}
+    filteredEndpoint := []Endpoint{}
 
-	if len(nodeLabels) == 0 {
+    if len(nodeLabels) == 0 {
         // 如果topologyKeys只有一个'*'，直接返回
-		if topologyKeys[len(topologyKeys)-1] == v1.TopologyKeyAny {
-			// edge case: include all endpoints if topology key "Any" specified
-			// when we cannot determine current node's topology.
-			return endpoints
-		}
-		// edge case: do not include any endpoints if topology key "Any" is
-		// not specified when we cannot determine current node's topology.
-		return filteredEndpoint
-	}
+        if topologyKeys[len(topologyKeys)-1] == v1.TopologyKeyAny {
+            // edge case: include all endpoints if topology key "Any" specified
+            // when we cannot determine current node's topology.
+            return endpoints
+        }
+        // edge case: do not include any endpoints if topology key "Any" is
+        // not specified when we cannot determine current node's topology.
+        return filteredEndpoint
+    }
 
-	for _, key := range topologyKeys {
-		if key == v1.TopologyKeyAny {
-			return endpoints
-		}
+    for _, key := range topologyKeys {
+        if key == v1.TopologyKeyAny {
+            return endpoints
+        }
         // 从节点标签中以该key获取对应的value
-		topologyValue, found := nodeLabels[key]
-		if !found {
-			continue
-		}
+        topologyValue, found := nodeLabels[key]
+        if !found {
+            continue
+        }
 
-		for _, ep := range endpoints {
-			topology := ep.GetTopology()
+        for _, ep := range endpoints {
+            topology := ep.GetTopology()
             // endpointslices中同样的key获取的value和上述从从节点标签中获取的value做对比
-			if value, found := topology[key]; found && value == topologyValue {
-				filteredEndpoint = append(filteredEndpoint, ep)
-			}
-		}
-		if len(filteredEndpoint) > 0 {
-			return filteredEndpoint
-		}
-	}
-	return filteredEndpoint
+            if value, found := topology[key]; found && value == topologyValue {
+                filteredEndpoint = append(filteredEndpoint, ep)
+            }
+        }
+        if len(filteredEndpoint) > 0 {
+            return filteredEndpoint
+        }
+    }
+    return filteredEndpoint
 }
 ```
 
@@ -432,27 +432,27 @@ default命名空间下的kubernetes service和kubernetes endpoint是由apiserver
 func (r *leaseEndpointReconciler) doReconcile(serviceName string, endpointPorts []corev1.EndpointPort, reconcilePorts bool) error {
     ......
 
-	if !formatCorrect || !ipCorrect {
-		// repopulate the addresses according to the expected IPs from etcd
-		e.Subsets[0].Addresses = make([]corev1.EndpointAddress, len(masterIPs))
-		for ind, ip := range masterIPs {
+    if !formatCorrect || !ipCorrect {
+        // repopulate the addresses according to the expected IPs from etcd
+        e.Subsets[0].Addresses = make([]corev1.EndpointAddress, len(masterIPs))
+        for ind, ip := range masterIPs {
             # 增加NodeName
-			e.Subsets[0].Addresses[ind] = corev1.EndpointAddress{IP: ip, NodeName: utilpointer.StringPtr(ip)}
-		}
+            e.Subsets[0].Addresses[ind] = corev1.EndpointAddress{IP: ip, NodeName: utilpointer.StringPtr(ip)}
+        }
 ```
 ```
 // UpdateLease resets the TTL on a master IP in storage
 func (s *storageLeases) UpdateLease(ip string) error {
-	key := path.Join(s.baseKey, ip)
-	return s.storage.GuaranteedUpdate(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, true, nil, func(input kruntime.Object, respMeta storage.ResponseMeta) (kruntime.Object, *uint64, error) {
-		// just make sure we've got the right IP set, and then refresh the TTL
-		existing := input.(*corev1.Endpoints)
-		existing.Subsets = []corev1.EndpointSubset{
-			{
-            # 增加NodeName
-				Addresses: []corev1.EndpointAddress{{IP: ip, NodeName: utilpointer.StringPtr(ip)}},
-			},
-		}
+    key := path.Join(s.baseKey, ip)
+    return s.storage.GuaranteedUpdate(apirequest.NewDefaultContext(), key, &corev1.Endpoints{}, true, nil, func(input kruntime.Object, respMeta storage.ResponseMeta) (kruntime.Object, *uint64, error) {
+        // just make sure we've got the right IP set, and then refresh the TTL
+        existing := input.(*corev1.Endpoints)
+        existing.Subsets = []corev1.EndpointSubset{
+            {
+                # 增加NodeName
+                Addresses: []corev1.EndpointAddress{{IP: ip, NodeName: utilpointer.StringPtr(ip)}},
+            },
+        }
 ```
 编译新镜像`GO111MODULE=off KUBE_GIT_TREE_STATE=clean KUBE_GIT_VERSION=v1.18.3 KUBE_BUILD_PLATFORMS=linux/amd64 make release-images`
 

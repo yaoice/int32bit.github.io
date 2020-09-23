@@ -30,8 +30,6 @@ galaxy更像是后端可以接多种cni插件的适配器
 git checkout v1.0.4
 ```
 
-#### galaxy-v1.0.4 yaml配置
-
 #### galaxy cni配置
 ```
 ---
@@ -1535,6 +1533,532 @@ func (s *Server) healthy(request *restful.Request, response *restful.Response) {
 }
 ```
 
+没有在cni插件中指定ipam，pod是如何获取到ip呢？pod如果启用eniNetwork，在galaxy-ipam调度过程bind阶段会为每个pod的annotation带上网络信息，格式如`k8s.v1.cni.galaxy.io/args: '{"common":{"ipinfos":[{"ip":"19.16.104.163/24","vlan":0,"gateway":"19.16.104.254"}]}}'`，
+galaxy-sdn cni插件会发请求至`http://dummy/cni`, galaxy server会收到该请求，最终调用到`cniutil.CmdAdd`
+```
+# github.com/yaoice/galaxy/pkg/galaxy/server.go
+installHandlers -> g.cni -> g.requestFunc -> g.cmdAdd -> cniutil.CmdAdd
+
+// CmdAdd saves networkInfos to disk and executes each cni binary to setup network
+func CmdAdd(cmdArgs *skel.CmdArgs, networkInfos []*NetworkInfo) (types.Result, error) {
+    if len(networkInfos) == 0 {
+        return nil, fmt.Errorf("No network info returned")
+    }
+    if err := saveNetworkInfo(cmdArgs.ContainerID, networkInfos); err != nil {
+        return nil, fmt.Errorf("Error save network info %v for %s: %v", networkInfos, cmdArgs.ContainerID, err)
+    }
+    var (
+        err    error
+        result types.Result
+    )
+    for idx, networkInfo := range networkInfos {
+        //append additional args from network info
+        // networkInfo的地址信息赋值给cmdArgs.Args
+        cmdArgs.Args = strings.TrimRight(fmt.Sprintf("%s;%s", cmdArgs.Args, BuildCNIArgs(networkInfo.Args)), ";")
+        if result != nil {
+            networkInfo.Conf["prevResult"] = result
+        }
+        // 继续调用其它cni插件执行cmdAdd
+        result, err = DelegateAdd(networkInfo.Conf, cmdArgs, networkInfo.IfName)
+        if err != nil {
+            //fail to add cni, then delete all established CNIs recursively
+            glog.Errorf("fail to add network %s: %v, begin to rollback and delete it", networkInfo.Args, err)
+            delErr := CmdDel(cmdArgs, idx)
+            glog.Warningf("fail to delete cni in rollback %v", delErr)
+            return nil, fmt.Errorf("fail to establish network %s:%v", networkInfo.Args, err)
+        }
+    }
+    if err != nil {
+        return nil, err
+    }
+    return result, nil
+}
+
+# k8s vlan插件
+func cmdAdd(args *skel.CmdArgs) error {
+    conf, err := d.LoadConf(args.StdinData)
+    if err != nil {
+        return err
+    }
+    // args里携带了上面的网络地址信息
+    vlanIds, results, err := ipam.Allocate(conf.IPAM.Type, args)
+    ......
+}
+
+const (
+    IPInfosKey = "ipinfos"
+)
+
+// Allocate tries to find IPInfo from args firstly
+// Otherwise invoke third party ipam binaries
+func Allocate(ipamType string, args *skel.CmdArgs) ([]uint16, []types.Result, error) {
+    var (
+        vlanId uint16
+        err    error
+    )
+    // 解析args.Args
+    kvMap, err := cniutil.ParseCNIArgs(args.Args)
+    if err != nil {
+        return nil, nil, err
+    }
+    var results []types.Result
+    var vlanIDs []uint16
+    // 获取ipinfos key对应的地址信息
+    // 格式：'{"common":{"ipinfos":[{"ip":"19.16.104.163/24","vlan":0,"gateway":"19.16.104.254"}]}}'
+    if ipInfoStr := kvMap[constant.IPInfosKey]; ipInfoStr != "" {
+        // get ipinfo from cni args
+        var ipInfos []constant.IPInfo
+        if err := json.Unmarshal([]byte(ipInfoStr), &ipInfos); err != nil {
+            return nil, nil, fmt.Errorf("failed to unmarshal ipInfo from args %q: %v", args.Args, err)
+        }
+    ......
+}
+```
+通过scheduler bind阶段把网络地址信息记录在pod的annotation上，然后再通过kubelet加载的galaxy-sdn cni插件把cni请求截获发到galaxy server端，
+解析pod的annotation提取网络地址信息，用于构建cni请求的CmdArgs，最后再去请求对应的cni插件
+
+### galaxy二层网络sample
+
+这里是一个使用k8s ipvlan模式的配置，ipvlan支持需要内核4.2以上
+
+#### galayx yaml
+```
+[root@vm_66_183_centos /data]# vim galaxy-v1.0.6.yaml 
+apiVersion: extensions/v1beta1
+kind: DaemonSet
+metadata:
+  labels:
+    app: galaxy
+  name: galaxy-daemonset
+  namespace: kube-system
+spec:
+  revisionHistoryLimit: 10
+  selector:
+    matchLabels:
+      app: galaxy
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: galaxy
+    spec:
+      containers:
+      - args:
+        - -c
+        - cp -p /etc/cni/net.d/00-galaxy.conf /host/etc/cni/net.d/; cp -p /opt/cni/bin/*
+          /host/opt/cni/bin/; /usr/bin/galaxy --network-policy --logtostderr=true
+          --v=3
+        command:
+        - /bin/sh
+        env:
+        - name: MY_NODE_NAME
+          valueFrom:
+            fieldRef:
+              apiVersion: v1
+              fieldPath: spec.nodeName
+        - name: DOCKER_HOST
+          value: unix:///host/run/docker.sock
+        image: tkestack/galaxy:v1.0.6
+        imagePullPolicy: IfNotPresent
+        name: galaxy
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        securityContext:
+          privileged: true
+        terminationMessagePath: /dev/termination-log
+        terminationMessagePolicy: File
+        volumeMounts:
+        - mountPath: /var/run/galaxy/
+          name: galaxy-run
+        - mountPath: /run/flannel
+          name: flannel-run
+        - mountPath: /host/etc/kubernetes/
+          name: kube-config
+        - mountPath: /data/galaxy/logs
+          name: galaxy-log
+        - mountPath: /etc/galaxy
+          name: galaxy-etc
+        - mountPath: /host/etc/cni/net.d/
+          name: cni-config
+        - mountPath: /host/opt/cni/bin
+          name: cni-bin
+        - mountPath: /etc/cni/net.d
+          name: cni-etc
+        - mountPath: /var/lib/cni
+          name: cni-state
+        - mountPath: /host/run/
+          name: docker-sock
+      dnsPolicy: ClusterFirst
+      hostNetwork: true
+      hostPID: true
+      restartPolicy: Always
+      schedulerName: default-scheduler
+      securityContext: {}
+      serviceAccount: galaxy
+      serviceAccountName: galaxy
+      terminationGracePeriodSeconds: 30
+      tolerations:
+      - effect: NoSchedule
+        operator: Exists
+      volumes:
+      - hostPath:
+          path: /var/run/galaxy
+          type: ""
+        name: galaxy-run
+      - hostPath:
+          path: /run/flannel
+          type: ""
+        name: flannel-run
+      - hostPath:
+          path: /etc/kubernetes/
+          type: ""
+        name: kube-config
+      - hostPath:
+          path: /opt/cni/bin
+          type: ""
+        name: cni-bin-dir
+      - emptyDir: {}
+        name: galaxy-log
+      - configMap:
+          defaultMode: 420
+          name: galaxy-etc
+        name: galaxy-etc
+      - hostPath:
+          path: /etc/cni/net.d/
+          type: ""
+        name: cni-config
+      - hostPath:
+          path: /opt/cni/bin
+          type: ""
+        name: cni-bin
+      - hostPath:
+          path: /var/lib/cni
+          type: ""
+        name: cni-state
+      - configMap:
+          defaultMode: 420
+          name: cni-etc
+        name: cni-etc
+      - hostPath:
+          path: /run/
+          type: ""
+        name: docker-sock
+  updateStrategy:
+    rollingUpdate:
+      maxUnavailable: 1
+    type: RollingUpdate
+```
+
+DefaultNetworks使用galaxy-k8s-vlan
+```
+# kubectl -n kube-system edit cm galaxy-etc
+  galaxy.json: |
+    {
+      "NetworkConf":[
+        {"name":"tke-route-eni","type":"tke-route-eni","eni":"eth1","routeTable":1},
+        {"name":"galaxy-flannel","type":"galaxy-flannel", "delegate":{"type":"galaxy-veth"},"subnetFile":"/run/flannel/subnet.env"},
+        {"name":"galaxy-k8s-vlan","type":"galaxy-k8s-vlan", "device":"eth0", "switch":"ipvlan", "ipvlan_mode":"l2"},
+        {"name":"galaxy-k8s-sriov","type": "galaxy-k8s-sriov", "device": "eth0", "vf_num": 10}
+      ],
+      "DefaultNetworks": ["galaxy-k8s-vlan"]
+    }
+```
+
+#### galaxy-ipam yaml
+```
+# vim galaxy-ipam-v1.0.6.yaml
+apiVersion: v1
+kind: Service
+metadata:
+  name: galaxy-ipam
+  namespace: kube-system
+  labels:
+    app: galaxy-ipam
+spec:
+  type: NodePort
+  ports:
+  - name: scheduler-port
+    port: 9040
+    targetPort: 9040
+    nodePort: 32760
+    protocol: TCP
+  - name: api-port
+    port: 9041
+    targetPort: 9041
+    nodePort: 32761
+    protocol: TCP
+  selector:
+    app: galaxy-ipam
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: ClusterRole
+metadata:
+  name: galaxy-ipam
+rules:
+- apiGroups: [""]
+  resources:
+  - pods
+  - namespaces
+  - nodes
+  - pods/binding
+  verbs: ["list", "watch", "get", "patch", "create"]
+- apiGroups: ["apps", "extensions"]
+  resources:
+  - statefulsets
+  - deployments
+  verbs: ["list", "watch"]
+- apiGroups: [""]
+  resources:
+  - configmaps
+  - endpoints
+  - events
+  verbs: ["get", "list", "watch", "update", "create", "patch"]
+- apiGroups: ["galaxy.k8s.io"]
+  resources:
+  - pools
+  - floatingips
+  verbs: ["get", "list", "watch", "update", "create", "patch", "delete"]
+- apiGroups: ["apiextensions.k8s.io"]
+  resources:
+  - customresourcedefinitions
+  verbs:
+  - "*"
+- apiGroups: ["apps.tkestack.io"]
+  resources:
+  - tapps
+  verbs: ["list", "watch"]
+---
+apiVersion: v1
+kind: ServiceAccount
+metadata:
+  name: galaxy-ipam
+  namespace: kube-system
+---
+apiVersion: rbac.authorization.k8s.io/v1
+# kubernetes versions before 1.8.0 should use rbac.authorization.k8s.io/v1beta1
+kind: ClusterRoleBinding
+metadata:
+  name: galaxy-ipam
+roleRef:
+  apiGroup: rbac.authorization.k8s.io
+  kind: ClusterRole
+  name: galaxy-ipam
+subjects:
+  - kind: ServiceAccount
+    name: galaxy-ipam
+    namespace: kube-system
+---
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  labels:
+    app: galaxy-ipam
+  name: galaxy-ipam
+  namespace: kube-system
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: galaxy-ipam
+  template:
+    metadata:
+      labels:
+        app: galaxy-ipam
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+          - labelSelector:
+              matchExpressions:
+              - key: app
+                operator: In
+                values:
+                - galaxy-ipam
+            topologyKey: "kubernetes.io/hostname"
+      serviceAccountName: galaxy-ipam
+      hostNetwork: true
+      dnsPolicy: ClusterFirstWithHostNet
+      containers:
+      - image: tkestack/galaxy-ipam:v1.0.6
+        args:
+          - --logtostderr=true
+          - --profiling
+          - --v=3
+          - --config=/etc/galaxy/galaxy-ipam.json
+          - --port=9040
+          - --api-port=9041
+          - --leader-elect
+        command:
+          - /usr/bin/galaxy-ipam
+        ports:
+          - containerPort: 9040
+          - containerPort: 9041
+        imagePullPolicy: Always
+        name: galaxy-ipam
+        resources:
+          requests:
+            cpu: 100m
+            memory: 200Mi
+        volumeMounts:
+        - name: kube-config
+          mountPath: /etc/kubernetes/
+        - name: galaxy-ipam-log
+          mountPath: /data/galaxy-ipam/logs
+        - name: galaxy-ipam-etc
+          mountPath: /etc/galaxy
+      terminationGracePeriodSeconds: 30
+      tolerations:
+        - effect: NoSchedule
+          key: node-role.kubernetes.io/master
+          operator: Exists
+      volumes:
+      - name: kube-config
+        hostPath:
+          path: /etc/kubernetes/
+      - name: galaxy-ipam-log
+        emptyDir: {}
+      - configMap:
+          defaultMode: 420
+          name: galaxy-ipam-etc
+        name: galaxy-ipam-etc
+---
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  name: galaxy-ipam-etc
+  namespace: kube-system
+data:
+  # delete cloudProviderGrpcAddr if not ENI
+  galaxy-ipam.json: |
+    {
+      "schedule_plugin": {
+      }
+    }
+```
+
+#### scheduler policy config
+
+```
+# cp /etc/kubernetes/{scheduler-policy-config.json,scheduler-policy-config.json.bak}
+```
+
+编辑scheduler policy配置
+```
+# vim /etc/kubernetes/scheduler-policy-config.json
+{
+  "kind": "Policy",
+  "apiVersion": "v1",
+  "extenders": [
+    {
+      "urlPrefix": "http://127.0.0.1:32760/v1",
+      "httpTimeout": 10000000000,
+      "filterVerb": "filter",
+      "BindVerb": "bind",
+      "weight": 1,
+      "enableHttps": false,
+      "managedResources": [
+        {
+          "name": "tke.cloud.tencent.com/eni-ip",
+          "ignoredByScheduler": true
+        }
+      ]
+    }
+  ]
+}
+```
+
+#### 浮动IP池
+```
+cat <<EOF | kubectl create -f -
+kind: ConfigMap
+apiVersion: v1
+metadata:
+ name: floatingip-config
+ namespace: kube-system
+data:
+ floatingips: '[{"nodeSubnets":["192.168.104.0/24"],"ips":["192.168.104.130~192.168.104.180"],"subnet":"192.168.104.0/24","gateway":"192.168.104.254"}]'
+EOF
+```
+配置节点所在的网络，pod要使用的网络, 所有节点对应的neutron port需要设置对应的allow_address_pairs: 192.168.104.0/24; 放行这个网段；ips设置多个地址范围
+
+#### 测试
+
+```
+[root@localhost ~]# cat common-nginx.yaml 
+apiVersion: apps/v1
+kind: ReplicaSet
+metadata:
+  name: common-nginx
+  labels:
+    app: common-nginx
+spec:
+  replicas: 3
+  selector:
+    matchLabels:
+      app: common-nginx
+  template:
+    metadata:
+      name: common-nginx
+      labels:
+        app: common-nginx
+      annotations:
+        k8s.v1.cni.cncf.io/networks: "galaxy-k8s-vlan"
+    spec:
+      containers:
+      - name: nginx
+        image: registry.tcnp.com/library/nginx
+        resources:
+          requests:
+            tke.cloud.tencent.com/eni-ip: "1"
+          limits:
+            tke.cloud.tencent.com/eni-ip: "1"
+```
+
+```
+[root@localhost ~]# kubectl get pod -o wide
+NAME                 READY   STATUS    RESTARTS   AGE   IP                NODE              NOMINATED NODE   READINESS GATES
+common-nginx-c7d8f   1/1     Running   0          68m   192.168.104.131   192.168.104.111   <none>           <none>
+common-nginx-ftpcf   1/1     Running   0          68m   192.168.104.153   192.168.104.128   <none>           <none>
+common-nginx-gk8ss   1/1     Running   0          68m   192.168.104.158   192.168.104.111   <none>           <none>
+common-nginx-lwh2p   1/1     Running   0          68m   192.168.104.130   192.168.104.111   <none>           <none>
+common-nginx-q8mq8   1/1     Running   0          68m   192.168.104.133   192.168.104.111   <none>           <none>
+common-nginx-z85cj   1/1     Running   0          68m   192.168.104.142   192.168.104.111   <none>           <none>
+
+[root@localhost ~]# kubectl get floatingips.galaxy.k8s.io
+NAME              AGE
+192.168.104.130   68m
+192.168.104.131   68m
+192.168.104.133   68m
+192.168.104.142   68m
+192.168.104.153   68m
+192.168.104.158   68m
+```
+
+进入ip为192.168.104.153的pod的namespace，能够ping通网关
+```
+[root@localhost ~]# e common-nginx-ftpcf default
+entering pod netns for default/common-nginx-ftpcf
+nsenter -n --target 27501
+[root@localhost ~]# ip a
+1: lo: <LOOPBACK,UP,LOWER_UP> mtu 65536 qdisc noqueue state UNKNOWN group default qlen 1
+    link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
+    inet 127.0.0.1/8 scope host lo
+       valid_lft forever preferred_lft forever
+8: eth0@if2: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default 
+    link/ether fa:16:3e:5e:b8:71 brd ff:ff:ff:ff:ff:ff
+    inet 192.168.104.153/24 brd 192.168.104.255 scope global eth0
+       valid_lft forever preferred_lft forever
+[root@localhost ~]# 
+[root@localhost ~]# route -n
+Kernel IP routing table
+Destination     Gateway         Genmask         Flags Metric Ref    Use Iface
+0.0.0.0         192.168.104.254 0.0.0.0         UG    0      0        0 eth0
+192.168.104.0   0.0.0.0         255.255.255.0   U     0      0        0 eth0
+```
+外部能够通过<pod-ip>，直接访问其服务
 
 ### 参考链接
 
