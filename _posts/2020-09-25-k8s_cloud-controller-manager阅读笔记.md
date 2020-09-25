@@ -3,7 +3,6 @@ layout: post
 title: K8s cloud-controller-manager阅读笔记
 subtitle: ""
 catalog: true
-hide: true
 tags:
      - k8s
 ---
