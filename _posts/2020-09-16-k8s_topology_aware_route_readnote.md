@@ -450,7 +450,7 @@ func (s *storageLeases) UpdateLease(ip string) error {
         existing.Subsets = []corev1.EndpointSubset{
             {
                 # 增加NodeName
-                Addresses: []corev1.EndpointAddress{{IP: ip, NodeName: utilpointer.StringPtr(ip)}},
+                Addresses: []corev1.EndpointAddress{\{IP: ip, NodeName: utilpointer.StringPtr(ip)\}},
             },
         }
 ```

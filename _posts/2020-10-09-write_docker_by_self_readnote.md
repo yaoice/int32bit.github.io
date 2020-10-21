@@ -8,8 +8,6 @@ tags:
      - k8s
 ---
 
-[TOC]
-
 ### 环境
 
 - go版本：1.14.6
@@ -80,6 +78,7 @@ func main() {
 uts:[4026531838]
 # readlink /proc/47748/ns/uts 
 uts:[4026532923]
+<<<<<<< HEAD
 ```
 
 父进程与子进程的uts不同，也就是说在子进程(新shell环境)中修改hostname，不会影响到宿主机
@@ -691,8 +690,6 @@ func main() {
 123468 root      20   0  208660  96888    272 D  50.5   0.1   0:06.05 stress 
 ```
 
-
-
 ### Union File System
 
 >Union File System ,简称 UnionFS , 是一种为 Linux 、 FreeBSD 和 NetBSD 操作系统设计的,
@@ -736,6 +733,7 @@ Digest: sha256:bc2f7250f69267c9c6b66d7b6a81a54d3878bb85f1ebb5f951c896d13e6ba537
 Status: Downloaded newer image for ubuntu:latest
 docker.io/library/ubuntu:latest
 ```
+
 
 从拉取镜像的过程来看，ubuntu:latest镜像一共有3层，/var/lib/docker/aufs/*目录下也有三个文件目录
 
@@ -800,8 +798,6 @@ IMAGE               CREATED             CREATED BY                              
 <missing>           2 weeks ago         /bin/sh -c set -xe   && echo '#!/bin/sh' > /…   811B                
 <missing>           2 weeks ago         /bin/sh -c #(nop) ADD file:da80f59399481ffc3…   72.9MB   
 ```
-
-
 
 再次查看/var/lib/docker/aufs目录下的文件目录，多了1f98fd35a5db663a2c5ff94f5886a265651f0b83ab2360474302bfd9658cd625
 
@@ -874,8 +870,6 @@ drwx--x--x 15 root root 4096 10月 13 11:28 ../
 # ls /sys/fs/aufs/
 config
 ```
-
-
 
 启动一个容器docker aufs的layer id如何计算的
 
@@ -1079,9 +1073,7 @@ image layer4
 image layer4
 write test
 ```
-
 查看image-layer4内容并未发生改变，container-layer目录下多了一个image-layer4.txt的文件。当尝试向 mnt/image-layer4.txt 文件进行写操作的时候 , 系统首先在 mnt 目录下查找名为 image-layer4.txt 的 文件 ,将其拷贝到 read-write 层的 container-layer 目录中,接着对container-layer 目录中的 image-layer4.txt 文件进行写操作 。
-
 
 
 ### 构造容器
@@ -1102,5 +1094,6 @@ write test
 - /proc/N/status 进程状态信息,比 stat/statm 更具可读性
 - /proc/self/ 链接到当前正在运行的进程
 
-​	模拟docker demo实现：https://github.com/yaoice/idocker
+模拟docker demo实现：[https://github.com/yaoice/idocker](https://github.com/yaoice/idocker)
+
 
