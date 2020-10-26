@@ -17,14 +17,14 @@ tags:
 这种模式是同时加载了两种cni插件，ipvlan和veth-host，即pod有两种网卡；一张是ipvlan的子网卡，另一张是veth网卡，veth另一端在宿主机上，与宿主机构成veth对
 
 以下两种场景中的ipvlan工作在l2模式，实际上ipvlan是有三种模式的
-- L2模式下入出流量不会经过host namespace网络，无法支持kube-proxy
-- L3模式下入流量不经过host namespace网络，无法支持kube-proxy
-- L3S模式下出入流量均经过host namespace的三层网络，但又会带来以下新的问题：
+- L2模式下入出流量不会经过host namespace网络，无法支持kube-proxy，不会经过host namespace的netfilter chains
+- L3模式下入流量不经过host namespace网络，无法支持kube-proxy，只有出流量经过host namespace的netfilter POSTROUTING/OUTPUT chains
+- L3S模式下出入流量均经过host namespace的三层网络，出入流量均经过host namespace的netfilter chains，但又会带来以下新的问题：
   - 当service的client和server POD在一个master时，server的response报文会走ipvlan datapath, service访问失败
   - L3S模式下流量从4层进入interface，无法支持kata等安全容器
   - 当client和server在同一node时，导致同一方向流量多次进出host conntrack，datapath复杂，和iptables/ipvs也存在兼容性问题
 
-l2: ipvlan L2模式和macvlan bridge 模式工作原理很相似，父接口作为交换机来转发子接口的数据。
+l2: ipvlan L2模式和macvlan bridge模式工作原理很相似，父接口作为交换机来转发子接口的数据。
 同一个网络的子接口可以通过父接口来转发数据，而如果想发送到其他网络，报文则会通过父接口的路由转发出去。
 
 l3: ipvlan有点像路由器的功能，它在各个虚拟网络和主机网络之间进行不同网络报文的路由转发工作。
@@ -453,6 +453,8 @@ cni-ipam-neutron无需做改动，还是基于neutron port多辅助IP来实现�
 - [https://kubernetes.io/docs/concepts/architecture/cloud-controller/#service-controller](https://kubernetes.io/docs/concepts/architecture/cloud-controller/#service-controller)
 - [Kubernetes网络的IPVlan方案](https://kernel.taobao.org/2019/11/ipvlan-for-kubernete-net/)
 - [ipvlan l2 vs l3区别](https://www.cnblogs.com/menkeyi/p/11374023.html)
+- [ipvlan l2 vs l3 vs l3s定义](https://access.redhat.com/documentation/en-us/red_hat_enterprise_linux/8/html/system_design_guide/getting-started-with-ipvlan_system-design-guide)
+- [https://www.kernel.org/doc/Documentation/networking/ipvlan.txt](https://www.kernel.org/doc/Documentation/networking/ipvlan.txt)
 
 
 
