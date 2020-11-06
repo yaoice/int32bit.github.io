@@ -1136,6 +1136,147 @@ func (bitmap *Bitmap) String() string {
 }
 ```
 
+排序算法一览：
+
+<img src="/img/posts/2020-05-03/sort.png"/>
+
+#### 冒泡排序
+
+冒泡排序（Bubble Sort）也是一种简单直观的排序算法。它重复地走访过要排序的数列，一次比较两个元素，如果他们的顺序错误就把他们交换过来。
+
+算法步骤：
+1. 比较相邻的元素。如果第一个比第二个大，就交换他们两个。
+2. 对每一对相邻元素作同样的工作，从开始第一对到结尾的最后一对。这步做完后，最后的元素会是最大的数。
+3. 针对所有的元素重复以上的步骤，除了最后一个。
+4. 持续每次对越来越少的元素重复上面的步骤，直到没有任何一对数字需要比较。
+```
+func bubbleSort(arr []int) []int {
+	length := len(arr)
+	for i := 0; i < length; i++ {
+		for j := 0; j < length-1-i; j++ {
+			if arr[j] > arr[j+1] {
+				arr[j], arr[j+1] = arr[j+1], arr[j]
+			}
+		}
+	}
+	return arr
+}
+```
+
+#### 选择排序
+
+选择排序是一种简单直观的排序算法，无论什么数据进去都是O(n²)的时间复杂度。
+
+算法步骤：
+1. 首先在未排序序列中找到最小（大）元素，存放到排序序列的起始位置
+2. 再从剩余未排序元素中继续寻找最小（大）元素，然后放到已排序序列的末尾。
+3. 重复第二步，直到所有元素均排序完毕。
+```
+func selectorSort(arr []int) []int {
+    length := len(arr)
+    for i := 0; i < length; i++ {
+        max := i
+        for j := i+1; j < length; j++ {
+            if arr[j] > arr[max] {
+                max = j
+            }
+        }
+
+        if max != i {
+            arr[max], arr[i] = arr[i], arr[max]
+        }
+    }
+    return arr
+}
+```
+
+#### 插入排序
+
+插入排序的代码实现虽然没有冒泡排序和选择排序那么简单粗暴，但它的原理应该是最容易理解的了，
+插入排序是一种最简单直观的排序算法，它的工作原理是通过构建有序序列，对于未排序数据，在已排序序列中从后向前扫描，找到相应位置并插入。
+
+插入排序和冒泡排序一样，也有一种优化算法，叫做拆半插入。
+
+算法步骤：
+1. 将第一待排序序列第一个元素看做一个有序序列，把第二个元素到最后一个元素当成是未排序序列。
+2. 从头到尾依次扫描未排序序列，将扫描到的每个元素插入有序序列的适当位置。（如果待插入的元素与有序序列中的某个元素相等，则将待插入元素插入到相等元素的后面。）
+
+```
+func insertSort(arr []int) []int {
+	for i := range arr {
+		preIndex := i - 1
+		current := arr[i]
+		for preIndex >= 0 && arr[preIndex] > current {
+			arr[preIndex+1] = arr[preIndex]
+			preIndex -= 1
+		}
+		arr[preIndex+1] = current
+	}
+	return arr
+}
+```
+
+#### 希尔排序
+
+
+
+#### 归并排序
+
+归并排序(Merge sort)是建立在归并操作上的一种有效的排序算法。该算法是采用分治法(Divide and Conquer)的一个非常典型的应用。
+
+归并排序的实现由两种方法：
+- 自上而下的递归（所有递归的方法都可以用迭代重写，所以就有了第2种方法）
+- 自下而上的迭代
+
+和选择排序一样，归并排序的性能不受输入数据的影响，但表现比选择排序好的多，因为始终都是O(nlogn)的时间复杂度。代价是需要额外的内存空间。
+
+算法步骤：
+1. 申请空间，使其大小为两个已经排序序列之和，该空间用来存放合并后的序列；
+2. 设定两个指针，最初位置分别为两个已经排序序列的起始位置；
+3. 比较两个指针所指向的元素，选择相对小的元素放入到合并空间，并移动指针到下一位置；
+4. 重复步骤3直到某一指针达到序列尾；
+5. 将另一序列剩下的所有元素直接复制到合并序列尾。
+
+自下而上的迭代
+```
+func mergeSort(arr []int) []int {
+    length := len(arr)
+    if length < 2 {
+        return arr
+    }
+    middle := length / 2
+    left := arr[0:middle]
+    right := arr[middle:]
+
+   return merge(mergeSort(left), mergeSort(right))
+}
+
+func merge(left []int, right []int) []int {
+    var result []int
+
+    for len(left) != 0 && len(right) != 0 {
+        if left[0] < right[0] {
+            result = append(result, left[0])
+            left = left[1:]
+        } else {
+            result = append(result, right[0])
+            right = right[1:]
+        }
+    }
+    for len(left) != 0 {
+        result = append(result, left[0])
+        left = left[1:]
+    }
+
+    for len(right) != 0 {
+        result = append(result, right[0])
+        right = right[1:]
+    }
+    return result
+}
+```
+
 ### 参考链接
 
 - 数据结构与算法之美(极客时间王争)
+- [十大经典排序算法](https://github.com/hustcc/JS-Sorting-Algorithm)
