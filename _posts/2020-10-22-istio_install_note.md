@@ -165,10 +165,10 @@ See https://istio.io/latest/docs/setup/install/ to add Istio to your Kubernetes 
 
 To configure the istioctl client tool for your workstation,
 add the /root/istio-1.7.4/bin directory to your environment path variable with:
-	 export PATH="$PATH:/root/istio-1.7.4/bin"
+     export PATH="$PATH:/root/istio-1.7.4/bin"
 
 Begin the Istio pre-installation check by running:
-	 istioctl x precheck 
+     istioctl x precheck 
 
 Need more information? Visit https://istio.io/latest/docs/setup/install/
 ```
