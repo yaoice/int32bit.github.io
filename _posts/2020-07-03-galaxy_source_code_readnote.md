@@ -72,43 +72,41 @@ galaxy的配置文件，默认使用的cni插件是flannel(重命名为galaxy-fl
 
 #### galaxy daemonset
 ```
---- 
-apiVersion: extensions/v1beta1
+---
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
     app: galaxy
-  name: galaxy-daemonset
+  name: galaxy-daemonset 
   namespace: kube-system
 spec:
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: galaxy
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: galaxy
     spec:
+      serviceAccountName: galaxy
+      hostNetwork: true
+      hostPID: true
       containers:
-      - args:
-        - -c
-        - cp -p /etc/cni/net.d/00-galaxy.conf /host/etc/cni/net.d/; cp -p /opt/cni/bin/*
-          /host/opt/cni/bin/; /usr/bin/galaxy --network-policy --logtostderr=true
-          --v=3
-        command:
-        - /bin/sh
+      - image: tkestack/galaxy:v1.0.6
+        command: ["/bin/sh"]
+      # qcloud galaxy should run with --route-eni
+        args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3 --network-policy"]
+      # private-cloud should run without --route-eni
+      # args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3"]
+        imagePullPolicy: IfNotPresent 
         env:
-        - name: MY_NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        - name: DOCKER_HOST
-          value: unix:///host/run/docker.sock
-        image: tkestack/galaxy:v1.0.4
-        imagePullPolicy: IfNotPresent
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: DOCKER_HOST
+            value: unix:///host/run/docker.sock
         name: galaxy
         resources:
           requests:
@@ -116,91 +114,60 @@ spec:
             memory: 200Mi
         securityContext:
           privileged: true
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
-        - mountPath: /var/run/galaxy/
-          name: galaxy-run
-        - mountPath: /run/flannel
-          name: flannel-run
-        - mountPath: /host/etc/kubernetes/
-          name: kube-config
-        - mountPath: /data/galaxy/logs
-          name: galaxy-log
-        - mountPath: /etc/galaxy
-          name: galaxy-etc
-        - mountPath: /host/etc/cni/net.d/
-          name: cni-config
-        - mountPath: /host/opt/cni/bin
-          name: cni-bin
-        - mountPath: /etc/cni/net.d
-          name: cni-etc
-        - mountPath: /var/lib/cni
-          name: cni-state
-        - mountPath: /host/run/
-          name: docker-sock
-      dnsPolicy: ClusterFirst
-      hostNetwork: true
-      hostPID: true
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      serviceAccount: galaxy
-      serviceAccountName: galaxy
+        - name: galaxy-run
+          mountPath: /var/run/galaxy/
+        - name: flannel-run
+          mountPath: /run/flannel
+        - name: galaxy-log
+          mountPath: /data/galaxy/logs
+        - name: galaxy-etc
+          mountPath: /etc/galaxy
+        - name: cni-config
+          mountPath: /etc/cni/net.d/
+        - name: cni-bin
+          mountPath: /opt/cni/bin
+        - name: cni-etc
+          mountPath: /etc/galaxy/cni
+        - name: cni-state
+          mountPath: /var/lib/cni
+        - name: docker-sock
+          mountPath: /host/run/
       terminationGracePeriodSeconds: 30
       tolerations:
       - effect: NoSchedule
         operator: Exists
       volumes:
-      - hostPath:
+      - name: galaxy-run
+        hostPath:
           path: /var/run/galaxy
-          type: ""
-        name: galaxy-run
-      - hostPath:
+      - name: flannel-run
+        hostPath:
           path: /run/flannel
-          type: ""
-        name: flannel-run
-      - hostPath:
-          path: /etc/kubernetes/
-          type: ""
-        name: kube-config
-      - hostPath:
-          path: /opt/cni/bin
-          type: ""
-        name: cni-bin-dir
-      - emptyDir: {}
-        name: galaxy-log
+      - name: galaxy-log
+        emptyDir: {}
       - configMap:
           defaultMode: 420
           name: galaxy-etc
         name: galaxy-etc
-      - hostPath:
+      - name: cni-config
+        hostPath:
           path: /etc/cni/net.d/
-          type: ""
-        name: cni-config
-      - hostPath:
+      - name: cni-bin
+        hostPath:
           path: /opt/cni/bin
-          type: ""
-        name: cni-bin
-      - hostPath:
+      - name: cni-state
+        hostPath:
           path: /var/lib/cni
-          type: ""
-        name: cni-state
       - configMap:
           defaultMode: 420
           name: cni-etc
         name: cni-etc
-      - hostPath:
+      - name: docker-sock
+        # in case of docker restart, /run/docker.sock may change, we have to mount the /run directory
+        hostPath:
           path: /run/
-          type: ""
-        name: docker-sock
-  templateGeneration: 5
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
-    type: RollingUpdate
 ```
-`cp -p /opt/cni/bin/* /host/opt/cni/bin/`把galaxy镜像带的cni插件都放到宿主机的/opt/cni/bin/目录下
 
 #### flannel yaml配置
 ```
@@ -1623,43 +1590,42 @@ func Allocate(ipamType string, args *skel.CmdArgs) ([]uint16, []types.Result, er
 
 #### galayx yaml
 ```
-[root@vm_66_183_centos /data]# vim galaxy-v1.0.6.yaml 
-apiVersion: extensions/v1beta1
+# vim galaxy-v1.0.6.yaml 
+---
+apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
     app: galaxy
-  name: galaxy-daemonset
+  name: galaxy-daemonset 
   namespace: kube-system
 spec:
-  revisionHistoryLimit: 10
   selector:
     matchLabels:
       app: galaxy
   template:
     metadata:
-      creationTimestamp: null
       labels:
         app: galaxy
     spec:
+      serviceAccountName: galaxy
+      hostNetwork: true
+      hostPID: true
       containers:
-      - args:
-        - -c
-        - cp -p /etc/cni/net.d/00-galaxy.conf /host/etc/cni/net.d/; cp -p /opt/cni/bin/*
-          /host/opt/cni/bin/; /usr/bin/galaxy --network-policy --logtostderr=true
-          --v=3
-        command:
-        - /bin/sh
+      - image: tkestack/galaxy:v1.0.6.fix-ipvlan
+        command: ["/bin/sh"]
+      # qcloud galaxy should run with --route-eni
+        args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3 --network-policy"]
+      # private-cloud should run without --route-eni
+      # args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3"]
+        imagePullPolicy: IfNotPresent 
         env:
-        - name: MY_NODE_NAME
-          valueFrom:
-            fieldRef:
-              apiVersion: v1
-              fieldPath: spec.nodeName
-        - name: DOCKER_HOST
-          value: unix:///host/run/docker.sock
-        image: tkestack/galaxy:v1.0.6
-        imagePullPolicy: IfNotPresent
+          - name: MY_NODE_NAME
+            valueFrom:
+              fieldRef:
+                fieldPath: spec.nodeName
+          - name: DOCKER_HOST
+            value: unix:///host/run/docker.sock
         name: galaxy
         resources:
           requests:
@@ -1667,88 +1633,59 @@ spec:
             memory: 200Mi
         securityContext:
           privileged: true
-        terminationMessagePath: /dev/termination-log
-        terminationMessagePolicy: File
         volumeMounts:
-        - mountPath: /var/run/galaxy/
-          name: galaxy-run
-        - mountPath: /run/flannel
-          name: flannel-run
-        - mountPath: /host/etc/kubernetes/
-          name: kube-config
-        - mountPath: /data/galaxy/logs
-          name: galaxy-log
-        - mountPath: /etc/galaxy
-          name: galaxy-etc
-        - mountPath: /host/etc/cni/net.d/
-          name: cni-config
-        - mountPath: /host/opt/cni/bin
-          name: cni-bin
-        - mountPath: /etc/cni/net.d
-          name: cni-etc
-        - mountPath: /var/lib/cni
-          name: cni-state
-        - mountPath: /host/run/
-          name: docker-sock
-      dnsPolicy: ClusterFirst
-      hostNetwork: true
-      hostPID: true
-      restartPolicy: Always
-      schedulerName: default-scheduler
-      securityContext: {}
-      serviceAccount: galaxy
-      serviceAccountName: galaxy
+        - name: galaxy-run
+          mountPath: /var/run/galaxy/
+        - name: flannel-run
+          mountPath: /run/flannel
+        - name: galaxy-log
+          mountPath: /data/galaxy/logs
+        - name: galaxy-etc
+          mountPath: /etc/galaxy
+        - name: cni-config
+          mountPath: /etc/cni/net.d/
+        - name: cni-bin
+          mountPath: /opt/cni/bin
+        - name: cni-etc
+          mountPath: /etc/galaxy/cni
+        - name: cni-state
+          mountPath: /var/lib/cni
+        - name: docker-sock
+          mountPath: /host/run/
       terminationGracePeriodSeconds: 30
       tolerations:
       - effect: NoSchedule
         operator: Exists
       volumes:
-      - hostPath:
+      - name: galaxy-run
+        hostPath:
           path: /var/run/galaxy
-          type: ""
-        name: galaxy-run
-      - hostPath:
+      - name: flannel-run
+        hostPath:
           path: /run/flannel
-          type: ""
-        name: flannel-run
-      - hostPath:
-          path: /etc/kubernetes/
-          type: ""
-        name: kube-config
-      - hostPath:
-          path: /opt/cni/bin
-          type: ""
-        name: cni-bin-dir
-      - emptyDir: {}
-        name: galaxy-log
+      - name: galaxy-log
+        emptyDir: {}
       - configMap:
           defaultMode: 420
           name: galaxy-etc
         name: galaxy-etc
-      - hostPath:
+      - name: cni-config
+        hostPath:
           path: /etc/cni/net.d/
-          type: ""
-        name: cni-config
-      - hostPath:
+      - name: cni-bin
+        hostPath:
           path: /opt/cni/bin
-          type: ""
-        name: cni-bin
-      - hostPath:
+      - name: cni-state
+        hostPath:
           path: /var/lib/cni
-          type: ""
-        name: cni-state
       - configMap:
           defaultMode: 420
           name: cni-etc
         name: cni-etc
-      - hostPath:
+      - name: docker-sock
+        # in case of docker restart, /run/docker.sock may change, we have to mount the /run directory
+        hostPath:
           path: /run/
-          type: ""
-        name: docker-sock
-  updateStrategy:
-    rollingUpdate:
-      maxUnavailable: 1
-    type: RollingUpdate
 ```
 
 DefaultNetworks使用galaxy-k8s-vlan

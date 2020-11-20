@@ -1216,10 +1216,6 @@ func insertSort(arr []int) []int {
 }
 ```
 
-#### 希尔排序
-
-
-
 #### 归并排序
 
 归并排序(Merge sort)是建立在归并操作上的一种有效的排序算法。该算法是采用分治法(Divide and Conquer)的一个非常典型的应用。
@@ -1275,6 +1271,82 @@ func merge(left []int, right []int) []int {
     return result
 }
 ```
+
+#### 二叉树最大深度
+
+方法一：深度优先搜索(DFS)
+
+堆栈实现, 利用递归的方式不停下探树的深度; 递归的终止条件是如果节点为空就返回0
+
+```go
+package main
+
+type TreeNode struct {
+	left *TreeNode // 左子节点
+	right *TreeNode // 右子节点
+	value int // 值
+}
+
+func maxDepth(root *TreeNode) int {
+	// 递归终止条件
+	if root == nil {
+		return 0
+	}
+	return max(maxDepth(root.left), maxDepth(root.right)) + 1
+}
+
+func max(a, b int) int {
+	if a > b {
+		return a
+	}
+	return b
+}
+```
+
+方法二：广度优先搜索(BFS)
+
+队列实现, 利用迭代的方式将每一层的节点都放入到队列当中; 队列出队清空进入下一层。
+
+```go
+package main
+
+type TreeNode struct {
+	left *TreeNode // 左子节点
+	right *TreeNode // 右子节点
+	value int // 值
+}
+
+func maxDepth(root *TreeNode) int {
+	// 没有根节点
+	if root == nil {
+		return 0
+	}
+	// 创建队列
+	queue := make([]*TreeNode, 0)
+	// 根节点入队列
+	queue = append(queue, root)
+	depth := 0
+	// 清算队列
+	for len(queue) > 0 {
+		// 把当前层的队列全部遍历一遍全部出队列
+		size := len(queue)
+		for i:=0; i<size; i++ {
+			// 出队列
+			v := queue[0]
+			if v.left != nil {
+				queue = append(queue, v.left)
+			}
+			if v.right != nil {
+				queue = append(queue, v.right)
+			}
+		}
+		depth++
+	}
+	return depth
+}
+```
+DFS一般是解决连通性问题, 而BFS一般是解决最短路径问题.
+
 
 ### 参考链接
 

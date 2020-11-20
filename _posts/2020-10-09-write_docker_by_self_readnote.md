@@ -3,7 +3,6 @@ layout: post
 title: 《自己动手写docker》阅读笔记
 subtitle: ""
 catalog: true
-hide: true
 tags:
      - k8s
 ---
