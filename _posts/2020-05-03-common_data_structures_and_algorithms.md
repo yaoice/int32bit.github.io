@@ -1347,6 +1347,146 @@ func maxDepth(root *TreeNode) int {
 ```
 DFS一般是解决连通性问题, 而BFS一般是解决最短路径问题.
 
+#### LRU缓存
+
+LRU: 最近一段时间最久未被使用的缓存优先删除
+
+采用哈希表+双向链表实现；哈希表存放key对应的链节点(缓存数据)，双向链表的顺序代表数据访问的新旧程度，
+头部位置代表最近被访问的数据，尾部位置代表最近许久未被访问的数据，如果缓存数据超过链表容量，删除尾部位置节点
+```
+package main
+
+import "fmt"
+
+/*
+采用哈希表+双向链表
+*/
+
+type LRUCache struct {
+	size, cap int
+	head, tail *LinkNode
+	cache map[int]*LinkNode
+}
+
+type LinkNode struct {
+	key, value int
+	pre, next *LinkNode
+}
+
+func (l *LRUCache) Get(key int) int {
+	linkNode, ok := l.cache[key]
+	//不存在，返回-1
+	if !ok {
+		return -1
+	}
+	//存在，移动节点到链表头
+	l.moveToHead(linkNode)
+	return linkNode.value
+}
+
+func (l *LRUCache) Put(key, value int) {
+	linkNode, ok := l.cache[key]
+	if !ok {
+		//是新节点
+		newLinkNode := initLinkNode(key, value)
+		l.addToHead(newLinkNode)
+		l.cache[key] = newLinkNode
+		l.size++
+
+		if l.size > l.cap {
+			//超过链表容量，剔除链表尾部节点
+			removedNode := l.tail.pre
+			l.removeNode(removedNode)
+			//从map删除
+			delete(l.cache, removedNode.key)
+			l.size--
+		}
+	} else {
+		//节点已存在
+		if linkNode.value != value {
+			linkNode.value = value
+		}
+		l.moveToHead(linkNode)
+	}
+}
+
+func (l *LRUCache) removeNode(linkNode *LinkNode) {
+	linkNode.pre.next = linkNode.next
+	linkNode.next.pre = linkNode.pre
+}
+
+func (l *LRUCache) removeTail(linkNode *LinkNode) {
+	l.removeNode(linkNode)
+	l.tail.next = nil
+}
+
+func (l *LRUCache) addToHead(linkNode *LinkNode) {
+	linkNode.pre = l.head
+	linkNode.next = l.head.next
+
+	l.head.next.pre = linkNode
+	l.head.next = linkNode
+}
+
+func (l *LRUCache) moveToHead(linkNode *LinkNode) {
+	//1. 删除节点原来的位置
+	l.removeNode(linkNode)
+	//2. 插入到链表头部
+	l.addToHead(linkNode)
+}
+
+
+func initLinkNode(key, value int) *LinkNode {
+	return &LinkNode{
+		key: key,
+		value: value,
+	}
+}
+
+func conStructLRUCache(cap int) *LRUCache {
+	l := &LRUCache{
+		size:  0,
+		cap:   cap,
+		head:  initLinkNode(0, 0),
+		tail:  initLinkNode(0,0),
+		cache: make(map[int]*LinkNode, 0),
+	}
+	l.head.next = l.tail
+	l.head.pre = nil
+	l.tail.pre = l.head
+	l.tail.next = nil
+	return l
+}
+
+func (l *LRUCache) print() {
+	for key, value := range l.cache {
+		fmt.Printf(" key: %d, value: %d", key, value.value)
+	}
+}
+
+func main() {
+	l := conStructLRUCache(2)
+	fmt.Println("\n第一次put")
+	l.Put(1,1)
+	l.print()
+	fmt.Println("\n第二次put")
+	l.Put(2,2)
+	l.print()
+	l.Get(1)
+	fmt.Println("\n第三次put")
+	l.Put(3,3)
+	l.print()
+	fmt.Println("\n第四次put")
+	l.Put(4,4)
+	l.print()
+	fmt.Println("\n第五次put")
+	l.Put(4,8)
+	l.print()
+	fmt.Println("\n第六次put")
+	l.Put(6,6)
+	l.print()
+}
+```
 
 ### 参考链接
 
