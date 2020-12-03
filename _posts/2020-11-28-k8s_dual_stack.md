@@ -1,3 +1,11 @@
+---
+layout: post
+title: k8s ipv4/ipv6双栈实践
+subtitle: ""
+catalog: true
+tags:
+     - k8s
+---
 
 ### k8s双栈
 
