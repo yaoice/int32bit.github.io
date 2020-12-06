@@ -488,6 +488,149 @@ endpoints:
 kind: EndpointSlice
 ```
 
+### Issue
+
+启用了EndpointSlice和ServiceTopology后，不支持service配置外部的endpoints，kube-proxy没有生成对应的iptables规则
+
+示例yaml：
+```
+apiVersion: v1
+kind: Service
+metadata:
+  name: rgw
+  namespace: ceph
+spec:
+  ports:
+  - name: rgw
+    nodePort: 9000
+    port: 9000
+    protocol: TCP
+    targetPort: 9000
+  sessionAffinity: None
+  type: NodePort
+---
+apiVersion: v1
+kind: Endpoints
+metadata:
+  name: rgw
+  namespace: ceph
+subsets:
+- addresses:
+  - ip: 1.1.1.1
+  - ip: 1.1.1.2
+  ports:
+  - name: rgw
+    port: 22
+    protocol: TCP
+```
+
+查阅代码，调用流程如下：
+```
+syncProxyRules -> proxier.endpointsMap.Update(proxier.endpointsChanges) ->
+em.apply -> ect.checkoutChanges()
+
+func (ect *EndpointChangeTracker) checkoutChanges() []*endpointsChange {
+	ect.lock.Lock()
+	defer ect.lock.Unlock()
+
+	metrics.EndpointChangesPending.Set(0)
+    //如果启用endpointSlices的话，在初始化EndpointChangeTracker对象的时候，endpointSliceCache就不会是nil了
+	if ect.endpointSliceCache != nil {
+	    //返回一个[]*endpointsChange，外部的endpoints也包含在内
+		return ect.endpointSliceCache.checkoutChanges()
+	}
+
+	changes := []*endpointsChange{}
+	for _, change := range ect.items {
+		changes = append(changes, change)
+	}
+	ect.items = make(map[types.NamespacedName]*endpointsChange)
+	return changes
+}
+
+//初始化EndpointChangeTracker对象
+// NewEndpointChangeTracker initializes an EndpointsChangeMap
+func NewEndpointChangeTracker(hostname string, makeEndpointInfo makeEndpointFunc, isIPv6Mode *bool, recorder record.EventRecorder, endpointSlicesEnabled bool) *EndpointChangeTracker {
+	ect := &EndpointChangeTracker{
+		hostname:               hostname,
+		items:                  make(map[types.NamespacedName]*endpointsChange),
+		makeEndpointInfo:       makeEndpointInfo,
+		isIPv6Mode:             isIPv6Mode,
+		recorder:               recorder,
+		lastChangeTriggerTimes: make(map[types.NamespacedName][]time.Time),
+	}
+	//启用endpointSlices的话，就会初始化endpointSliceCache
+	if endpointSlicesEnabled {
+		ect.endpointSliceCache = NewEndpointSliceCache(hostname, isIPv6Mode, recorder, makeEndpointInfo)
+	}
+	return ect
+}
+```
+
+进入ect.endpointSliceCache.checkoutChanges()
+```
+// checkoutChanges returns a list of all endpointsChanges that are
+// pending and then marks them as applied.
+func (cache *EndpointSliceCache) checkoutChanges() []*endpointsChange {
+	changes := []*endpointsChange{}
+
+	cache.lock.Lock()
+	defer cache.lock.Unlock()
+
+	for serviceNN, esTracker := range cache.trackerByServiceMap {
+		if len(esTracker.pending) == 0 {
+			continue
+		}
+
+		change := &endpointsChange{}
+
+		change.previous = cache.getEndpointsMap(serviceNN, esTracker.applied)
+
+		for name, sliceInfo := range esTracker.pending {
+			if sliceInfo.Remove {
+				delete(esTracker.applied, name)
+			} else {
+				esTracker.applied[name] = sliceInfo
+			}
+
+			delete(esTracker.pending, name)
+		}
+
+		change.current = cache.getEndpointsMap(serviceNN, esTracker.applied)
+		changes = append(changes, change)
+	}
+
+	return changes
+}
+```
+会解析所有的endpointSliceCache，然后组装返回[]*endpointsChange，意思是需要手工创建EndpointSlice，才能够生成对应的iptables规则
+```
+---
+addressType: IPv4
+apiVersion: discovery.k8s.io/v1beta1
+endpoints:
+- addresses:
+  - 1.1.1.1
+  conditions:
+    ready: true
+- addresses:
+  - 1.1.1.2
+  conditions:
+    ready: true
+kind: EndpointSlice
+metadata:
+  generateName: rgw-
+  generation: 3
+  labels:
+    endpointslice.kubernetes.io/managed-by: endpointslice-controller.k8s.io
+    kubernetes.io/service-name: rgw
+  name: rgw-k8fjf
+  namespace: ceph 
+ports:
+- name: rgw
+  port: 22
+  protocol: TCP
+```
 
 ### 参考链接
 
