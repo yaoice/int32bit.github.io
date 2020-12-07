@@ -624,6 +624,170 @@ func (t *TKE) createGlobalCluster(ctx context.Context) error {
 }
 ```
 
+初始化provider对象，创建global集群里面还定义了很多子任务
+```
+func (t *TKE) completeWithProvider() {
+	clusterProvider, err := baremetalcluster.NewProvider()
+	if err != nil {
+		panic(err)
+	}
+	t.clusterProvider = clusterProvider
+}
+
+func NewProvider() (*Provider, error) {
+	p := new(Provider)
+
+	p.DelegateProvider = &clusterprovider.DelegateProvider{
+		ProviderName: name,
+
+		CreateHandlers: []clusterprovider.Handler{
+		    //以下执行的目标都是：集群内的所有节点
+		    //拷贝文件(包含钩子脚本)
+			p.EnsureCopyFiles,
+			//赋予安装前的钩子执行权限并执行
+			p.EnsurePreInstallHook,
+
+			// configure system
+			//配置静态hosts，用于拉取镜像
+			p.EnsureRegistryHosts,
+			//加载内核模块，有iptable_nat,ip_vs,ip_vs_rr,ip_vs_wrr,ip_vs_sh，br_netfilter
+			p.EnsureKernelModule,
+			//sysctl设置内核参数优化
+			p.EnsureSysctl,
+			//禁用swap
+			p.EnsureDisableSwap,
+            //预检查
+			p.EnsurePreflight, // wait basic setting done
+            //更新集群的serviceCIDR,nodeCIDRMaskSize,DNSIP,Addresses,Credential,Annotations增加galaxy、gpu相关的标签，
+			p.EnsureClusterComplete,
+
+			// install packages
+			//如果节点打上"nvidia-device-enable": "enable"的label, 安装Nvidia驱动
+			p.EnsureNvidiaDriver,
+			//如果节点打上"nvidia-device-enable": "enable"的label, 安装Nvidia容器运行时
+			p.EnsureNvidiaContainerRuntime,
+			//安装docker
+			p.EnsureDocker,
+			//拉取k8s镜像
+			p.EnsureKubernetesImages,
+			//安装kubelet
+			p.EnsureKubelet,
+			//安装cni插件包
+			p.EnsureCNIPlugins,
+			//安装conntrack-tools
+			p.EnsureConntrackTools,
+			//安装kubeadm
+			p.EnsureKubeadm,
+			//在第一个节点安装keepalived
+			p.EnsureKeepalivedInit,
+			//在第一个节点上接入第三方的HA, 实际上是往nat表OUTPUT链插入iptables规则
+			p.EnsureThirdPartyHAInit,
+			//安装authz webhook
+			p.EnsureAuthzWebhook,
+			//生成k8s控制平面的其它配置文件，如tokenFile, scheduler-policy-config，audit-policy-config等
+			p.EnsurePrepareForControlplane,
+            //在第一个节点上执行kubeadm init phase kubelet-start阶段
+			p.EnsureKubeadmInitPhaseKubeletStart,
+			//在第一个节点上执行kubeadm init phase certs all
+			p.EnsureKubeadmInitPhaseCerts,
+			//读取第一个节点上的证书相关内容写入ClusterCredential资源对象
+			p.EnsureStoreCredential,
+			//生成/root/.kube/config
+			p.EnsureKubeconfig, // for upload
+			//在第一个节点上执行kubeadm init phase kubeconfig all
+			p.EnsureKubeadmInitPhaseKubeConfig,
+			//在第一个节点上执行kubeadm init phase control-plane all
+			p.EnsureKubeadmInitPhaseControlPlane,
+			//在第一个节点上执行kubeadm init phase etcd local
+			p.EnsureKubeadmInitPhaseETCD,
+			//检测apiserver的/healthz接口，每隔5s检测一次，5min超时
+			p.EnsureKubeadmInitPhaseWaitControlPlane,
+			//在第一个节点上执行kubeadm init phase upload-config all
+			p.EnsureKubeadmInitPhaseUploadConfig,
+			//在第一个节点上执行kubeadm init phase upload-certs --upload-certs
+			p.EnsureKubeadmInitPhaseUploadCerts,
+			//在第一个节点上执行kubeadm init phase bootstrap-token 
+			p.EnsureKubeadmInitPhaseBootstrapToken,
+			//在第一个节点上执行kubeadm init phase addon all
+			p.EnsureKubeadmInitPhaseAddon,
+            //安装flannel、galaxy
+			p.EnsureGalaxy,
+            //除第一个节点外的后面节点，执行预检查
+			p.EnsureJoinPhasePreflight,
+			//除第一个节点外的后面节点，生成k8s控制平面的配置
+			p.EnsureJoinPhaseControlPlanePrepare,
+			//除第一个节点外的后面节点，启动kubelet
+			p.EnsureJoinPhaseKubeletStart,
+			//除第一个节点外的后面节点，加入etcd集群
+			p.EnsureJoinPhaseControlPlaneJoinETCD,
+			//除第一个节点外的后面节点，kubeadm join phase control-plane-join update-status
+			p.EnsureJoinPhaseControlPlaneJoinUpdateStatus,
+            //替换k8s核心组件的annotation，prometheus.io/port，prometheus的抓取端口
+			p.EnsurePatchAnnotation, // wait rest master ready
+			//给节点打标签，或者去污点
+			p.EnsureMarkControlPlane,
+			//如果启用内置HA，所有节点都安装keepalived，并在nat表的PREROUTING和OUTPUT链插入iptables DNAT规则
+			p.EnsureKeepalivedWithLB,
+			//如果启用第三方HA，所有节点nat表的OUTPUT链插入iptables DNAT规则
+			p.EnsureThirdPartyHA,
+			// deploy apps
+			//如果配置了Cluster.Spec.Features.GPUType=Physical的话，部署nvida device plugin
+			p.EnsureNvidiaDevicePlugin,
+			//如果配置了Cluster.Spec.Features.GPUType=Virtual的话，部署gpu-manager
+			p.EnsureGPUManager,
+			//如果配置了Cluster.Spec.Features.CSIOperator的话，部署csi-operator
+			p.EnsureCSIOperator,
+			//安装metric-server
+			p.EnsureMetricsServer,
+            //清除函数，实际上啥都没做？
+			p.EnsureCleanup,
+			//在kube-system命名空间下创建tke configmap
+			p.EnsureCreateClusterMark,
+			//赋予安装后的钩子执行权限并执行
+			p.EnsurePostInstallHook,
+		},
+		UpdateHandlers: []clusterprovider.Handler{
+			p.EnsureUpgradeControlPlaneNode,
+
+			p.EnsureRenewCerts,
+			p.EnsureAPIServerCert,
+			p.EnsureStoreCredential,
+			p.EnsureKeepalivedWithLB,
+			p.EnsureThirdPartyHA,
+		},
+		DeleteHandlers: []clusterprovider.Handler{
+			p.EnsureCleanClusterMark,
+		},
+	}
+
+	cfg, err := config.New(constants.ConfigFile)
+	if err != nil {
+		return nil, err
+	}
+	p.config = cfg
+    //registry初始化
+	containerregistry.Init(cfg.Registry.Domain, cfg.Registry.Namespace)
+
+	// Run for compatibility with installer.
+	// TODO: Installer reuse platform components
+	//初始化platformClient对象
+	if cfg.PlatformAPIClientConfig != "" {
+		restConfig, err := clientcmd.BuildConfigFromFlags("", cfg.PlatformAPIClientConfig)
+		if err != nil {
+			log.Errorf("read PlatformAPIClientConfig error: %w", err)
+		} else {
+			p.platformClient, err = platformv1client.NewForConfig(restConfig)
+			if err != nil {
+				return nil, err
+			}
+		}
+	}
+
+	return p, nil
+}
+```
+
+
 ### 参考链接
 
 - [https://github.com/tkestack/tke](https://github.com/tkestack/tke)
