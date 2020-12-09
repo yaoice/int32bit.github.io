@@ -626,7 +626,7 @@ app.Run主要执行逻辑：
 3. 从deviceFactory设备工厂函数中根据config.Driver类型返回一个有名函数`NewFunc func(cfg *config.Config) GPUTree`，用于获取实现了`GPUTree`接口的具体实例对象；
     - 实现了GPUTree接口的有两类结构体：NvidiaTree和DummyTree，这两类结构体在其init函数实现了设备主册，顾名思义起作用的只有NvidiaTree.
     - 执行了`GPUTree`接口的Init和Update函数(gpu拓扑结构感知)
-
+      Init函数：
       ```
       //Init a NvidiaTree.
       //Will try to use nvml first, fallback to input string if
@@ -731,7 +731,60 @@ app.Run主要执行逻辑：
       	return nil
       }
       ```
-
+      
+      Update函数
+      ```
+      //Update NvidiaTree by info getting from GPU devices.
+      //Return immediately if real GPU device is not available.
+      func (t *NvidiaTree) Update() {
+         if !t.realMode {
+            return
+         }
+          //Initialize NVML, but don't initialize any GPUs yet
+          if err := nvml.Init(); err != nil {
+              return
+          }
+      
+          defer nvml.Shutdown()
+      
+          klog.V(4).Infof("Update device information")
+      
+          t.Lock()
+          defer t.Unlock()
+      
+          for i := range t.Leaves() {
+              node := t.updateNode(i)
+      
+              if node.pendingReset && node.AllocatableMeta.Cores == HundredCore {
+                  resetGPUFeature(node, t.realMode)
+      
+                  if !node.pendingReset {
+                      t.freeNode(node)
+                  }
+              }
+      
+              klog.V(4).Infof("node %d, pid: %+v, memory: %+v, utilization: %+v, pendingReset: %+v",
+                  i, node.Meta.Pids, node.Meta.UsedMemory, node.Meta.Utilization, node.pendingReset)
+      
+              node = node.Parent
+              for node != nil {
+                  node.Meta.Pids = make([]uint, 0)
+                  node.Meta.UsedMemory = 0
+                  node.Meta.TotalMemory = 0
+      
+                  for _, child := range node.Children {
+                      node.Meta.Pids = append(node.Meta.Pids, child.Meta.Pids...)
+                      node.Meta.UsedMemory += child.Meta.UsedMemory
+                      node.Meta.TotalMemory += child.Meta.TotalMemory
+                  }
+      
+                  node = node.Parent
+              }
+          }
+      }
+      ```
+      更新树节点显存使用情况，还有pid列表
+   
 GPU拓扑结构矩阵图
 ```
 # nvidia-smi topo -m
@@ -800,7 +853,88 @@ ROOT:7:0
 |  |  |--GPU6:1:2
 ```
 
-
+4. 从allocFactory工厂函数中根据config.Driver类型返回一个有名函数`NewFunc func(cfg *config.Config, tree device.GPUTree, k8sClient kubernetes.Interface) GPUTopoService`， 
+   用于获取实现了`GPUTopoService`接口的具体实例对象；这里config.Driver是nvidia,所以返回的是NvidiaTopoAllocator对象
+   ```
+   //Register stores NewFunc in factory
+   func Register(name string, item NewFunc) {
+       if _, ok := factory[name]; ok {
+           return
+       }
+   
+       klog.V(2).Infof("Register NewFunc with name %s", name)
+   
+       factory[name] = item
+   }
+   
+   //NewFuncForName tries to find NewFunc by name, return nil if not found
+   func NewFuncForName(name string) NewFunc {
+       if item, ok := factory[name]; ok {
+           return item
+       }
+   
+       klog.V(2).Infof("Can not find NewFunc with name %s", name)
+   
+       return nil
+   }
+   ```
+   NvidiaTopoAllocator调用Register函数实现插件注册
+      
+   ```
+   func init() {
+       allocator.Register("nvidia", NewNvidiaTopoAllocator)
+       allocator.Register("nvidia_test", NewNvidiaTopoAllocatorForTest)
+   }
+   
+   //NewNvidiaTopoAllocator returns a new NvidiaTopoAllocator
+   func NewNvidiaTopoAllocator(config *config.Config, tree device.GPUTree, k8sClient kubernetes.Interface) allocator.GPUTopoService {
+       _tree, _ := tree.(*nvtree.NvidiaTree)
+       cm, err := checkpoint.NewManager(config.CheckpointPath, checkpointFileName)
+       if err != nil {
+           klog.Fatalf("Failed to create checkpoint manager due to %s", err.Error())
+       }
+       alloc := &NvidiaTopoAllocator{
+           tree:              _tree,
+           config:            config,
+           evaluators:        make(map[string]Evaluator),
+           allocatedPod:      cache.NewAllocateCache(),
+           k8sClient:         k8sClient,
+           queue:             workqueue.NewRateLimitingQueue(workqueue.DefaultControllerRateLimiter()),
+           stopChan:          make(chan struct{}),
+           checkpointManager: cm,
+       }
+   
+       // Load kernel module if it's not loaded
+       //加载nvidia-uvm nvidia内核模块
+       alloc.loadModule()
+   
+       // Initialize evaluator
+       //映射到三种不同模式(link、fragment、share)的树结构
+       alloc.initEvaluator(_tree)
+   
+       // Read extra config if it's given
+       alloc.loadExtraConfig(config.ExtraConfigPath)
+   
+       // Process allocation results in another goroutine
+       //标准controller的process函数，不断从队列中获取key，根据结果给pod patch上annotation
+       go wait.Until(alloc.runProcessResult, time.Second, alloc.stopChan)
+   
+       // Recover
+       //故障恢复的处理函数
+       alloc.recoverInUsed()
+   
+       // Check allocation in another goroutine periodically
+       //定时器检测gpu pod的卡分配，类似垃圾回收器
+       go alloc.checkAllocationPeriodically(alloc.stopChan)
+   
+       return alloc
+   }
+   ```  
+5. 初始化返回一个Display对象，记录GPU卡的使用情况
+6. 启动vcore和vmemory grpc server，两种device plugin插件的具体实现
+7. 建立/pprof的api调用
+8. 建立/metric的api调用，暴露metric值; 监听在http地址和端口
+9. 监听unix socket，启动服务
 
 ### gpu-admission代码分析
 
