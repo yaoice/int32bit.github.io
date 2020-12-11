@@ -666,6 +666,25 @@ func (n *RouteNetwork) handleSubnetEvents(batch []subnet.Event) {
 }
 ```
 
+#### galaxy+flannel+host-gw手动实践
+
+```
+sysctl -w net.ipv4.ip_forward=1
+ip netns add test1
+ip link add veth1 type veth peer name eth0 netns test1
+ip link set up dev veth1
+ip addr add 1.1.1.1/32 dev veth1
+ip netns exec test1 ip link set eth0 up
+ip netns exec test1 ip link set lo up
+ip netns exec test1 ip addr add 1.1.1.2/32 dev eth0
+ip route add 1.1.1.2/32 dev veth1 scope link
+# 容器内部添加路由
+ip netns exec test1 ip route add 169.254.1.1 dev eth0 scope link
+ip netns exec test1 ip route add default via 169.254.1.1 dev eth0
+ip netns exec test1 ip neigh replace 169.254.1.1 dev eth0 lladdr <宿主机veth1的MAC地址>
+```
+在宿主机上进行对1.1.1.2的ping连通测试，连通可达.
+
 ### vxlan模式
 
 #### vxlan介绍
@@ -1089,25 +1108,6 @@ PING 3.3.2.4 (3.3.2.4) 56(84) bytes of data.
 2 packets transmitted, 2 received, 0% packet loss, time 1001ms
 rtt min/avg/max/mdev = 0.601/0.863/1.125/0.262 ms
 ```
-
-#### galaxy+flannel+host-gw手动实践
-
-```
-sysctl -w net.ipv4.ip_forward=1
-ip netns add test1
-ip link add veth1 type veth peer name eth0 netns test1
-ip link set up dev veth1
-ip addr add 1.1.1.1/32 dev veth1
-ip netns exec test1 ip link set eth0 up
-ip netns exec test1 ip link set lo up
-ip netns exec test1 ip addr add 1.1.1.2/32 dev eth0
-ip route add 1.1.1.2/32 dev veth1 scope link
-# 容器内部添加路由
-ip netns exec test1 ip route add 169.254.1.1 dev eth0 scope link
-ip netns exec test1 ip route add default via 169.254.1.1 dev eth0
-ip netns exec test1 ip neigh replace 169.254.1.1 dev eth0 lladdr <宿主机veth1的MAC地址>
-```
-在宿主机上进行对1.1.1.2的ping连通测试，连通可达.
 
 #### 代码分析
 
