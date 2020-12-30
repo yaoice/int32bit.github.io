@@ -207,6 +207,9 @@ type Manager interface {
 
 #### k8s子网管理器
 
+如果启用了`--kube-subnet-mgr`, 集群中的每个节点子网分配取决于kube-controller-manager的`--node-cidr-mask-size-ipv4=24`和`--node-cidr-mask-size-ipv6=64`,
+默认--node-cidr-mask-size-ipv4的值是24，--node-cidr-mask-size-ipv6的值是64，这两个值会影响到node.spec.podCidrs；没有使用到节点本地子网分配逻辑
+
 ```
 type kubeSubnetManager struct {
     // 节点的annotaions记录子网分配信息
@@ -481,6 +484,7 @@ func (n *RouteNetwork) Run(ctx context.Context) {
 func WatchLeases(ctx context.Context, sm Manager, ownLease *Lease, receiver chan []Event) {
     // 初始化一个leaseWatcher对象
     lw := &leaseWatcher{
+        //ownLease代表本节点的subnet lease
         ownLease: ownLease,
     }
     var cursor interface{}
@@ -511,7 +515,7 @@ func WatchLeases(ctx context.Context, sm Manager, ownLease *Lease, receiver chan
             batch = lw.update(res.Events)
         } else {
             // 如果events channel中没有event的话
-            // 1. 遍历lw.leases以EventRemoved事件添加到batch中, 把原先的路由都删掉？或者len(res.Events)压根不会为0？
+            // 1. 遍历lw.leases以EventRemoved事件添加到batch中, 把原先的路由都删掉. 其实len(res.Events)压根不会为0，sm.WatchLeases是一个channel select调用，没有事件产生的话，就会阻塞在这里
             // 2. 清空lw.leases，以res.Snapshot赋值到lw.leases
             batch = lw.reset(res.Snapshot)
         }
