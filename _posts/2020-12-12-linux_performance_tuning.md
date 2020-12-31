@@ -540,13 +540,284 @@ listen的backlog指的是三次握手过程进入EStablished状态之后未被ac
 2400表示已用的文件描述符，65535000为总共可使用的文件描述符，0为可回收利用的文件描述符
 
 
-TCP  面向可靠的连接
+### 1.4 TCP
 
-最大滑动窗口    拥塞控制算法
+TCP是面向可靠连接, TCP还有超时重传机制，还有排序的机制，有发送的窗口，有窗口大小等等
 
-拥塞避免不好用
+>TCP使用了三种基础机制来实现面向连接的服务：
+>1 使用序列号进行标记，以便TCP接收服务在向目的应用传递数据之前修正错序的报文排序；
+>2 TCP使用确认，校验，和定时器系统提供可靠性。
+>3 TCP在应用层数据上附加了一个报头，报头包括序列号字段和这些机制的其他一些必要信息，如叫做端口号的地址字段，该字段可以标识数据的源点和目标应用程序。
 
-tc模拟一个大延时网络
+>TCP传输就像打电话，两边要喊“喂”，确保双方都听到的情况下，才说内容，如果某句话对方没有听清楚，
+对方会要求你重新说一次，直至对方清楚为止，打电话就是要双方说的每一句话都清清楚楚，而且收听者逻辑和意思是和讲话者保持一致的。
+
+>UDP传输就像寄信，我只管把信写好，只管把信投到信箱里，至于投到信箱之后，邮递员什么时候来取，多少天到达，
+邮递员在邮递的过程中会不会弄丢，我是没有办法控制的，我能做的，只是把这封信投出去。
+
+#### 1.4.1 重传机制
+
+TCP 实现可靠传输的方式之一， TCP针对数据包丢失的情况，会用重传机制解决
+
+常见的重传机制：
+- 超时重传
+- 快速重传
+- SACK
+- D-SACK
+
+#### 1.4.1.1 超时重传
+
+超时重传：在发送数据时，设定一个定时器，当超过指定的时间后，没有收到对方的 ACK 确认应答报文，就会重发该数据
+
+TCP 会在以下两种情况发生超时重传：
+- 数据包丢失
+- 确认应答丢失
+
+#### 1.4.1.2 快速重传
+
+快速重传：不以时间为驱动，而是以数据驱动重传
+
+快速重传的工作方式是当收到三个相同的 ACK 报文时，会在定时器过期之前，重传丢失的报文段。
+快速重传机制只解决了一个问题，就是超时时间的问题，但是它依然面临着另外一个问题。就是重传的时候，是重传之前的一个，还是重传所有的问题。
+
+#### 1.4.1.3 SACK
+
+TCP 头部「选项」字段里加一个 SACK 的东西，它可以将缓存的地图发送给发送方，
+这样发送方就可以知道哪些数据收到了，哪些数据没收到，知道了这些信息，就可以只重传丢失的数据。
+
+三次同样的ACK就会触发重传机制，要支持 SACK，必须双方都要支持。在Linux下，可以通过`net.ipv4.tcp_sack`参数打开这个功能（Linux 2.4后默认打开）
+
+#### 1.4.1.4 D-SACK
+
+D-SACK，其主要使用了 SACK 来告诉「发送方」有哪些数据被重复接收了
+
+D-SACK的作用：
+- 可以让「发送方」知道，是发出去的包丢了，还是接收方回应的 ACK 包丢了;
+- 可以知道是不是「发送方」的数据包被网络延迟了;
+- 可以知道网络中是不是把「发送方」的数据包给复制了;
+
+在 Linux 下可以通过`net.ipv4.tcp_dsack`参数开启/关闭这个功能（Linux 2.4 后默认打开）
+ 
+#### 1.4.2 滑动窗口
+
+为什么要有滑动窗口？
+>TCP 是每发送一个数据，都要进行一次确认应答。当上一个数据包收到了应答了， 再发送下一个。这样的传输方式有一个缺点：数据包的往返时间越长，通信的效率就越低。
+>为解决这个问题，TCP 引入了窗口这个概念。即使在往返时间较长的情况下，它也不会降低网络通信的效率。
+>那么有了窗口，就可以指定窗口大小，窗口大小就是指无需等待确认应答，而可以继续发送数据的最大值。
+>窗口的实现实际上是操作系统开辟的一个缓存空间，发送方主机在等到确认应答返回之前，必须在缓冲区中保留已发送的数据。如果按期收到确认应答，此时数据就可以从缓存区清除。
+
+TCP 头里有一个字段叫 Window，也就是窗口大小。这个字段是接收端告诉发送端自己还有多少缓冲区可以接收数据。
+于是发送端就可以根据这个接收端的处理能力来发送数据，而不会导致接收端处理不过来。通常窗口的大小是由接收方的窗口大小来决定的。
+窗口分发送窗口和接收窗口
+
+#### 1.4.3 流量控制
+
+为什么需要流量控制？
+>发送方不能无脑的发数据给接收方，要考虑接收方处理能力。
+>如果一直无脑的发数据给对方，但对方处理不过来，那么就会导致触发重发机制，从而导致网络流量的无端的浪费。
+ 
+TCP 提供一种机制可以让「发送方」根据「接收方」的实际接收能力控制发送的数据量，这就是所谓的流量控制。
+
+
+#### 1.4.4 拥塞控制
+
+为什么需要拥塞控制？
+>拥塞控制，控制的目的就是避免「发送方」的数据填满整个网络。而流量控制是避免「发送方」的数据填满「接收方」的缓存，但是并不知道网络的中发生了什么。
+>为了在「发送方」调节所要发送数据的量，定义了一个叫做「拥塞窗口」的概念
+
+
+拥塞窗口cwnd，是发送方维护的一个的状态变量，它会根据网络的拥塞程度动态变化的。
+引入拥塞窗口后，发送窗口的值是swnd = min(cwnd, rwnd)，也就是拥塞窗口和接收窗口中的最小值
+
+拥塞窗口 cwnd 变化的规则：
+- 只要网络中没有出现拥塞，cwnd 就会增大；
+- 但网络中出现了拥塞，cwnd 就减少；
+
+如何判断网络是否出现了拥塞？
+>发生了超时重传，就会认为网络出现了用拥塞。
+
+拥塞控制主要算法：
+- 慢启动
+- 拥塞避免
+- 拥塞发生
+- 快速恢复
+
+socket编程`TCP_CONGESTION`参数来决定拥塞控制算法，也可以通过`/proc/sys/net/ipv4/tcp_allowed_congestion_control`查看当前可用的拥塞控制算法
+
+```
+# cat /proc/sys/net/ipv4/tcp_allowed_congestion_control 
+cubic reno
+```
+Reno算法进入拥塞避免后每经过一个 RTT窗口才加 1，拥塞窗口增长太慢，导致在高速网络下不能充分利用网络带宽。所以为了解决这个问题，BIC和 CUBIC算法逐步被提了出来。
+
+除了reno和cubic之外，还有Google出品的BBR，BBR全称 bottleneck bandwidth and round-trip propagation time。基于包丢失检测的 Reno、NewReno 或者 cubic 为代表，其主要问题有 Buffer bloat 和长肥管道两种。
+和这些算法不同，bbr算法会时间窗口内的最大带宽max_bw和最小RTT min_rtt，并以此计算发送速率和拥塞窗口。
+
+#### 1.4.4.1 慢启动
+
+TCP 在刚建立连接完成后，首先是有个慢启动的过程，这个慢启动的意思就是一点一点的提高发送数据包的数量。
+慢启动的算法记住一个规则就行：当发送方每收到一个 ACK，拥塞窗口 cwnd 的大小就会加 1。
+
+慢启动会一直增长吗？
+有一个叫慢启动门限 ssthresh （slow start threshold）状态变量。
+- 当 cwnd < ssthresh 时，使用慢启动算法。
+- 当 cwnd >= ssthresh 时，就会使用「拥塞避免算法」。
+
+#### 1.4.4.2 拥塞避免
+
+当拥塞窗口 cwnd 「超过」慢启动门限 ssthresh 就会进入拥塞避免算法。(一般来说 ssthresh 的大小是 65535 字节)
+拥塞避免算法就是将原本慢启动算法的指数增长变成了线性增长，还是增长阶段，但是增长速度缓慢了一些。
+一直增长着后，网络就会慢慢进入了拥塞的状况了，于是就会出现丢包现象，这时就需要对丢失的数据包进行重传。
+当触发了重传机制，也就进入了「拥塞发生算法」
+
+拥塞避免的规则是：每当收到一个 ACK 时，cwnd 增加 1/cwnd。
+
+#### 1.4.4.3 拥塞发生
+
+1. 发生超时重传的拥塞发生算法，ssthresh 和 cwnd 的值会发生变化：
+- ssthresh 设为 cwnd/2，
+- cwnd 重置为 1
+
+接着，就重新开始慢启动，慢启动是会突然减少数据流的。这真是一旦「超时重传」，马上回到解放前。但是这种方式太激进了，反应也很强烈，会造成网络卡顿。
+
+2. 发生快速重传的拥塞发生算法, TCP 认为这种情况不严重，因为大部分没丢，只丢了一小部分，则 ssthresh 和 cwnd 变化如下：
+- cwnd = cwnd/2 ，也就是设置为原来的一半;
+- ssthresh = cwnd;
+- 进入快速恢复算法
+
+#### 1.4.4.4 快速恢复
+
+快速重传和快速恢复算法一般同时使用，快速恢复算法是认为，你还能收到 3 个重复 ACK 说明网络也不那么糟糕，所以没有必要像 RTO 超时那么强烈。
+进入快速恢复算法如下：
+- 拥塞窗口 cwnd = ssthresh + 3 （ 3 的意思是确认有 3 个数据包被收到了）；
+- 重传丢失的数据包；
+- 如果再收到重复的 ACK，那么 cwnd 增加 1；
+- 如果收到新数据的 ACK 后，把 cwnd 设置为第一步中的 ssthresh 的值，
+原因是该 ACK 确认了新的数据，说明从 duplicated ACK 时的数据都已收到，该恢复过程已经结束，
+可以回到恢复之前的状态了，也即再次进入拥塞避免状态；
+
+
+#### 1.4.5 BBR
+
+内核版本是Linux 4.9及以上的系统已经内置BBR但默认为关闭状态
+```
+echo "net.ipv4.tcp_congestion_control=bbr" >> /etc/sysctl.conf
+sysctl -p
+```
+
+可以用tc模拟一个大延时网络，通过eth1的包延时2秒
+```
+tc qd add dev eth1 root netem delay 2000ms
+```
+
+取消操作
+```
+tc qd del dev eth1 root netem delay 2000ms
+```
+
+#### 1.4.6 常用TCP Option
+
+TCP_NODELAY: TCP包被标志为psh，小包也直接发送，不用等积累到大包再一起发送
+
+TCP_CORK: 这个包尽量放在缓存里，等待其它包一起发送
+
+
+### 1.5 UDP
+
+面向无连接不可靠
+
+
+### 1.6 iptables conntrack
+
+nf_conntrack(在老版本的 Linux 内核中叫 ip_conntrack)是一个内核模块,用于跟踪一个连接的状态的。
+连接状态跟踪可以供其他模块使用,最常见的两个使用场景是 iptables 的 nat 的 state 模块。
+iptables的nat通过规则来修改目的/源地址,但光修改地址不行,我们还需要能让回来的包能路由到最初的来源主机。
+这就需要借助 nf_conntrack 来找到原来那个连接的记录才行。而 state 模块则是直接使用 nf_conntrack 里记录的连接的状态来匹配用户定义的相关规则。
+例如下面这条 INPUT 规则用于放行 80 端口上的状态为NEW的连接上的包。
+```
+iptables -A INPUT -p tcp -m state --state NEW -m tcp --dport 80 -j ACCEPT。
+```
+
+nf_conntrack模块常用命令
+```
+查看nf_conntrack表当前连接数    
+cat /proc/sys/net/netfilter/nf_conntrack_count       
+
+查看nf_conntrack表最大连接数    
+cat /proc/sys/net/netfilter/nf_conntrack_max    
+
+通过dmesg可以查看nf_conntrack的状况：
+dmesg |grep nf_conntrack
+
+查看存储conntrack条目的哈希表大小,此为只读文件
+cat /proc/sys/net/netfilter/nf_conntrack_buckets
+
+查看nf_conntrack的TCP连接记录时间
+cat /proc/sys/net/netfilter/nf_conntrack_tcp_timeout_established
+
+通过内核参数查看命令，查看所有参数配置
+sysctl -a | grep nf_conntrack
+
+通过conntrack命令行工具查看conntrack的内容
+yum install -y conntrack  
+conntrack -L  
+
+加载对应跟踪模块
+[root@plop ~]# modprobe /proc/net/nf_conntrack_ipv4    
+[root@plop ~]# lsmod | grep nf_conntrack    
+nf_conntrack_ipv4       9506  0    
+nf_defrag_ipv4          1483  1 nf_conntrack_ipv4    
+nf_conntrack_ipv6       8748  2    
+nf_defrag_ipv6         11182  1 nf_conntrack_ipv6    
+nf_conntrack           79758  3 nf_conntrack_ipv4,nf_conntrack_ipv6,xt_state    
+ipv6                  317340  28 sctp,ip6t_REJECT,nf_conntrack_ipv6,nf_defrag_ipv6  
+
+移除 nf_conntrack 模块
+$ sudo modprobe -r xt_NOTRACK nf_conntrack_netbios_ns nf_conntrack_ipv4 xt_state
+$ sudo modprobe -r nf_conntrack
+
+查看当前的连接数:
+grep nf_conntrack /proc/slabinfo
+
+查出目前 nf_conntrack 的排名:
+cat /proc/net/nf_conntrack | cut -d ' ' -f 10 | cut -d '=' -f 2 | sort | uniq -c | sort -nr | head -n 10
+```
+
+查看ip contrack记录, 与conntrack -L内容一样
+```
+# cat /proc/net/nf_conntrack
+```
+
+### 1.7 网卡多队列
+
+查看网卡硬中断
+```
+# cat /proc/interrupts 
+           CPU0       CPU1       CPU2       CPU3       CPU4       CPU5       CPU6       CPU7       CPU8       CPU9       CPU10      CPU11      CPU12      CPU13      CPU14      CPU15      
+  0:        106          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-edge      timer
+  1:         10          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-edge      i8042
+  4:        403          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-edge      serial
+  6:          3          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-edge      floppy
+  8:          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-edge      rtc0
+  9:          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-fasteoi   acpi
+ 11:          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0          0   IO-APIC-fasteoi   uhci_hcd:usb1, virtio3         
+```
+
+查看26号网卡中断
+```
+# cat /proc/irq/26/smp_affinity
+ffff
+```
+这是个16进制表示，转化为二进制，分别对应cpu核心数，启用即为1
+
+
+在没有网卡多队列的前提下，还可以设置RPS和RFS，在内核层面实现负载均衡
+```
+# cat /sys/class/net/eth1/queues/rx-0/rps_cpus
+ffff
+```
+
+### 1.8 tc
 
 ## 内存
 
@@ -557,6 +828,11 @@ slabtop
 
 
 
+### 参考链接
+
+- [TCP 重传、滑动窗口、流量控制、拥塞控制](https://www.cnblogs.com/xiaolincoding/p/12732052.html)
+- [万字详文：TCP 拥塞控制详解](https://zhuanlan.zhihu.com/p/144273871)
+- [Iptables之nf_conntrack模块](https://clodfisher.github.io/2018/09/nf_conntrack/)
 
 
 
