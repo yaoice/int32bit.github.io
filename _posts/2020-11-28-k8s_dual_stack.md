@@ -7,20 +7,20 @@ tags:
      - k8s
 ---
 
-### k8s双栈
+### 1 k8s双栈
 
 k8s从1.16版本支持ipv4/ipv6双协议栈，集群将支持同时分配IPv4和IPv6地址
 
-### ipv6
+### 2 ipv6
 
-#### 简介
+#### 2.1 简介
 
 >IPv6具有比IPv4大得多的编码地址空间。这是因为IPv6采用128位的地址，而IPv4使用的是32位。因此新增的地址空间支持2128（约3.4×1038）个地址，具体数量为340,282,366,920,938,463,463,374,607,431,768,211,456 个，也可以说成1632个，因为每4位地址（128位分为32段，每段4位）可以取24=16个不同的值。
 网络地址转换是目前减缓IPv4地址耗尽最有效的方式，而IPv6的地址消除了对它的依赖，被认为足够在可以预测的未来使用。就以地球人口70亿人计算，每人平均可分得约4.86×1028（486117667×1020）个IPv6地址。
 IPv6从IPv4到IPv6最显著的变化就是网络地址的长度。RFC 2373和RFC 2374定义的IPv6地址有128位长；IPv6地址的表达形式一般采用32个十六进制数。
 在很多场合，IPv6地址由两个逻辑部分组成：一个64位的网络前缀和一个64位的主机地址，主机地址通常根据物理地址自动生成，叫做EUI-64（或者64-位扩展唯一标识）
 
-#### 地址分类
+#### 2.3 地址分类
 
 1. 单播（unicast）地址
     
@@ -71,7 +71,7 @@ IPv6从IPv4到IPv6最显著的变化就是网络地址的长度。RFC 2373和RFC
 - 文件：
 >2001:db8::/32－这前置用于文件（RFC 3849）。这些地址应用于IPV6地址的示例中，或描述网络架构。
 
-#### 地址表示
+#### 2.4 地址表示
 
 ipv6地址在某些条家下的省略写法：
 
@@ -105,7 +105,7 @@ ipv6地址在某些条家下的省略写法：
 
 3.  如果这个地址实际上是IPv4的地址，后32位可以用10进制数表示；因此::ffff:192.168.89.9 相等于::ffff:c0a8:5909(ipv4映射地址)
 
-#### ipv6地址验证测试
+#### 2.5 ipv6地址验证测试
 
 curl ipv6
 ```
@@ -170,7 +170,7 @@ google.com.		13	IN	AAAA	2404:6800:4005:80a::200e
 ;; MSG SIZE  rcvd: 38
 ```
 
-### 宿主机配置ipv6
+### 3 宿主机配置ipv6
 
 宿主机是centos系列系统
 ```
@@ -201,13 +201,13 @@ net.ipv6.conf.all.forwarding=1
 sysctl -p
 ```
 
-### k8s启用ipv6
+### 4 k8s启用ipv6
 
 要启用IPv4/IPv6双协议栈，为集群的相关组件启用`IPv6DualStack`feature gates，并且设置双协议栈的集群网络分配：
 
 k8s采用kubeadm方式部署
 
-#### kube-apiserver
+#### 4.1 kube-apiserver
 
 ```
 # vim /etc/kubernetes/manifests/kube-apiserver.yaml
@@ -216,7 +216,7 @@ k8s采用kubeadm方式部署
 ```
 kube-apiserver启用ipv6双栈特性, 并增加pod ipv6 cidr
 
-#### kube-controller-manager
+#### 4.2 kube-controller-manager
 
 ```
 # vim /etc/kubernetes/manifests/kube-controller-manager.yaml
@@ -228,7 +228,7 @@ kube-apiserver启用ipv6双栈特性, 并增加pod ipv6 cidr
 ```
 kube-controller-manager启用ipv6双栈特性, 并增加pod/service ipv6 cidr
 
-#### kubelet
+#### 4.3 kubelet
 
 ```
 # vim /etc/sysconfig/kubelet
@@ -236,7 +236,7 @@ KUBELET_EXTRA_ARGS="--feature-gates=IPv6DualStack=true"
 ```
 kubelet启用ipv6双栈特性
 
-#### kube-proxy
+#### 4.4 kube-proxy
 
 ```
 # kubectl  -n kube-system edit cm kube-proxy
@@ -249,14 +249,14 @@ data:
 ```
 kube-proxy启用ipv6双栈特性, 并增加pod ipv6 cidr
 
-### cni插件启用双栈
+### 5 cni插件启用双栈
 
-#### flannel
+#### 5.1 flannel
 
 目前还没看到官方声明说支持ipv6，有个flannel官方issue关于ipv6[add IPv6 support](https://github.com/coreos/flannel/issues/248), 
 有人在做基于vxlan模式的双栈
 
-#### calico
+#### 5.2 calico
 
 calico支持ipv4/ipv6双栈，这里采用calico v3.17版本. calico部署可以按节点规模来选择不同的形式：
 
@@ -305,9 +305,9 @@ calico-node-bjk7d                          1/1     Running       0          4h2m
 calico-node-hhgm5                          1/1     Running       0          4h2m
 ```
 
-### kube-proxy模式
+### 6 kube-proxy模式
 
-#### iptables
+#### 6.1 iptables
 
 如果是iptables模式，宿主机需要配置ipv6默认网关，不然curl访问不了ipv6 cluster ip. 见[issue](https://github.com/projectcalico/calico/issues/2758)
 
@@ -398,7 +398,7 @@ ETag: "5fbd044b-264"
 Accept-Ranges: bytes
 ```
 
-#### ipvs
+#### 6.2 ipvs
 
 ```
 # kubectl -n kube-system edit cm kube-proxy
@@ -437,9 +437,9 @@ ETag: "5fbd044b-264"
 Accept-Ranges: bytes
 ```
 
-### ingress类型
+### 7 ingress类型
 
-#### nginx-ingress-controller
+#### 7.1 nginx-ingress-controller
 
 ```
 # wget -c https://raw.githubusercontent.com/kubernetes/ingress-nginx/controller-v0.41.2/deploy/static/provider/cloud/deploy.yaml
@@ -556,7 +556,7 @@ ETag: "5fbd044b-264"
 Accept-Ranges: bytes
 ```
 
-#### kong-ingress-controller
+#### 7.2 kong-ingress-controller
 
 kong-ingress-controller/konga部署参考：[kong-ingress-controller实践](http://www.iceyao.com.cn/2019/12/18/kong-ingress-controller%E5%AE%9E%E8%B7%B5/)
 
@@ -662,6 +662,265 @@ kong把80端口也当作是ipv6地址的一部分了，问题应该是在ipv6环
 - kube-proxy iptables/ipvs模式均访问正常，iptables模式下需要配置宿主机的默认ipv6网关，不然宿主机访问不了clusterIP
 - nginx-ingress-controller支持双栈,原生的kong-ingress-controller不支持双栈
 
+### flannel支持ipv6开发
+
+flannel默认使用host-local ipam插件用于分配ip地址
+```
+# echo '{ "cniVersion": "0.3.1", "name": "examplenet", "ipam": { "type": "host-local", "ranges": [ [{"subnet": "203.0.113.0/24"}], [{"subnet": "2001:db8:1::/64"}]], "dataDir": "/tmp/cni-example"  } }' | CNI_COMMAND=ADD CNI_CONTAINERID=example CNI_NETNS=/dev/null CNI_IFNAME=dummy0 CNI_PATH=. /opt/cni/bin/host-local 
+{
+    "cniVersion": "0.3.1",
+    "ips": [
+        {
+            "version": "4",
+            "address": "203.0.113.2/24",
+            "gateway": "203.0.113.1"
+        },
+        {
+            "version": "6",
+            "address": "2001:db8:1::2/64",
+            "gateway": "2001:db8:1::1"
+        }
+    ],
+    "dns": {}
+}
+```
+测试host-local是否支持双栈，从结果来看是支持的. 接下来定位flannel不支持ipv6处的代码：
+
+部署flannel, Kubernetes v1.17+环境
+```
+kubectl apply -f https://raw.githubusercontent.com/coreos/flannel/master/Documentation/kube-flannel.yml
+```
+
+配置service ipFamily=IPv6，验证ipv6地址不通
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: common-nginx
+  labels:
+    app: common-nginx
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: common-nginx
+  template:
+    metadata:
+      name: common-nginx
+      labels:
+        app: common-nginx
+    spec:
+      containers:
+      - name: nginx
+        image: nginx
+        imagePullPolicy: IfNotPresent
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: common-nginx
+spec:
+  ipFamily: IPv6
+  ports:
+  - name: proxy
+    port: 80
+    protocol: TCP
+    targetPort: 80
+  selector:
+    app: common-nginx 
+  sessionAffinity: None
+  type: ClusterIP 
+---
+apiVersion: extensions/v1beta1 
+kind: Ingress
+metadata:
+  name: common-nginx
+  annotations:
+    kubernetes.io/ingress.class: kong 
+spec:
+  rules:
+  - host: common-nginx.test.com
+    http:
+      paths:
+      - path: /
+        backend:
+          serviceName: common-nginx
+          servicePort: 80
+```
+
+分析问题：
+查阅flannel代码，子网分配器就不支持ipv6;如果是ipv4地址，32位，也就是4个字节，golang uint32类型就可以容纳。如果是ipv6地址呢？
+>ipv6地址，128位，也就是16个字节，golang中并没有uint128类型，如何实现ipv6<->int相互转换呢？
+>`github.com/coreos/flannel/pkg/ip/ipnet.go`里定义的都是ipv4<->int逻辑，calico如何实现ipv4、ipv6子网管理呢？
+
+自动生成ipv6地址的前缀
+```
+func GenerateIPv6ULAPrefix() (string, error) {
+	ulaAddr := []byte{0xfd, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0}
+	_, err := cryptorand.Read(ulaAddr[1:6])
+	if err != nil {
+		return "", err
+	}
+	ipNet := net.IPNet{
+		IP:   net.IP(ulaAddr),
+		Mask: net.CIDRMask(48, 128),
+	}
+	return ipNet.String(), nil
+}
+```
+ulaAddr代表一个ipv6地址，是128位，也就是16个字节；cryptorand.Read(ulaAddr[1:6])的作用是让第1个字节到第5个字节的值随机生成，第0个字节是0xfd
+
+calico-ipam中ipv4/ipv6<->int相互转换
+```
+# github.com/projectcalico/libcalico-go/lib/net/ip.go
+package net
+
+import (
+	"encoding/json"
+	"math/big"
+	"net"
+)
+
+// Sub class net.IP so that we can add JSON marshalling and unmarshalling.
+type IP struct {
+	net.IP
+}
+
+// Sub class net.IPNet so that we can add JSON marshalling and unmarshalling.
+type IPNet struct {
+	net.IPNet
+}
+
+// MarshalJSON interface for an IP
+func (i IP) MarshalJSON() ([]byte, error) {
+	s, err := i.MarshalText()
+	if err != nil {
+		return nil, err
+	}
+	return json.Marshal(string(s))
+}
+
+// UnmarshalJSON interface for an IP
+func (i *IP) UnmarshalJSON(b []byte) error {
+	var s string
+	if err := json.Unmarshal(b, &s); err != nil {
+		return err
+	}
+	if err := i.UnmarshalText([]byte(s)); err != nil {
+		return err
+	}
+	// Always return IPv4 values as 4-bytes to be consistent with IPv4 IPNet
+	// representations.
+	if ipv4 := i.To4(); ipv4 != nil {
+		i.IP = ipv4
+	}
+
+	return nil
+}
+
+// ParseIP returns an IP from a string
+func ParseIP(ip string) *IP {
+	addr := net.ParseIP(ip)
+	if addr == nil {
+		return nil
+	}
+	// Always return IPv4 values as 4-bytes to be consistent with IPv4 IPNet
+	// representations.
+	if addr4 := addr.To4(); addr4 != nil {
+		addr = addr4
+	}
+	return &IP{addr}
+}
+
+// Version returns the IP version for an IP, or 0 if the IP is not valid.
+func (i IP) Version() int {
+	if i.To4() != nil {
+		return 4
+	} else if len(i.IP) == net.IPv6len {
+		return 6
+	}
+	return 0
+}
+
+// Network returns the IP address as a fully masked IPNet type.
+func (i *IP) Network() *IPNet {
+	// Unmarshaling an IPv4 address returns a 16-byte format of the
+	// address, so convert to 4-byte format to match the mask.
+	n := &IPNet{}
+	if ip4 := i.IP.To4(); ip4 != nil {
+		n.IP = ip4
+		n.Mask = net.CIDRMask(net.IPv4len*8, net.IPv4len*8)
+	} else {
+		n.IP = i.IP
+		n.Mask = net.CIDRMask(net.IPv6len*8, net.IPv6len*8)
+	}
+	return n
+}
+
+// MustParseIP parses the string into an IP.
+func MustParseIP(i string) IP {
+	var ip IP
+	err := ip.UnmarshalText([]byte(i))
+	if err != nil {
+		panic(err)
+	}
+	// Always return IPv4 values as 4-bytes to be consistent with IPv4 IPNet
+	// representations.
+	if ip4 := ip.To4(); ip4 != nil {
+		ip.IP = ip4
+	}
+	return ip
+}
+
+func IPToBigInt(ip IP) *big.Int {
+	if ip.To4() != nil {
+		return big.NewInt(0).SetBytes(ip.To4())
+	} else {
+		return big.NewInt(0).SetBytes(ip.To16())
+	}
+}
+
+func BigIntToIP(ipInt *big.Int) IP {
+	ip := net.IP(ipInt.Bytes())
+	if ip.To4() != nil {
+		return IP{ip}
+	}
+	a := ipInt.FillBytes(make([]byte, 16))
+	return IP{net.IP(a)}
+}
+
+func IncrementIP(ip IP, increment *big.Int) IP {
+	sum := big.NewInt(0).Add(IPToBigInt(ip), increment)
+	return BigIntToIP(sum)
+}
+```
+
+flannel vxlan后端双栈支持改造过程：
+1. host-local ipam cni插件已支持双栈ip地址分配，flannel cni插件需要适配host-local ipam cni插件
+```
+"ranges": [ [{"subnet": "203.0.113.0/24"}], [{"subnet": "2001:db8:1::/64"}]]
+```
+2. flannel启动程序增加`--auto-detect-ipv6`自动检测节点主机ipv6地址
+3. flannel配置文件`net-conf.json`增加IPv6 cidr配置   
+4. flannel添加ipv6 ip/子网运算库，引入big.Int库(参考calico)
+5. flannel增加ip6tables处理逻辑，参考原先iptables处理逻辑
+6. node节点增加flannel ipv6信息annotation
+```
+  annotations:
+    flannel.alpha.coreos.com/backend-data: '{"VNI":1,"VtepMAC":"12:62:b6:2a:21:cf"}'
+    flannel.alpha.coreos.com/backend-type: vxlan
+    flannel.alpha.coreos.com/backend-v6-data: '{"VNI":1,"VtepMAC":"ba:5d:da:3f:78:e1"}'
+    flannel.alpha.coreos.com/kube-subnet-manager: "true"
+    flannel.alpha.coreos.com/public-ip: 1.1.33.34
+    flannel.alpha.coreos.com/public-ipv6: 2003:ac18::30a:2
+    node.alpha.kubernetes.io/ttl: "0"
+    volumes.kubernetes.io/controller-managed-attach-detach: "true"
+```
+7. flannel k8s子网管理器增加ipv6子网管理
+8. flannel vxlan ipv6隧道创建，创建flannel-v6.1 vxlan设备用于ipv6隧道连通
+9. flannel监听子网变化事件，增加ipv6子网事件监听
+10. flannel arp，vxlan fdb，增加ipv6地址记录
+
 ### 参考链接
 
 - [IPv4/IPv6 双协议栈](https://kubernetes.io/zh/docs/concepts/services-networking/dual-stack/)
@@ -669,3 +928,4 @@ kong把80端口也当作是ipv6地址的一部分了，问题应该是在ipv6环
 - [calico启用双栈](https://docs.projectcalico.org/networking/ipv6#enable-dual-stack)
 - [calico部署](https://docs.projectcalico.org/getting-started/kubernetes/self-managed-onprem/onpremises)
 - [ipv6介绍](https://zh.wikipedia.org/wiki/IPv6)
+- [host-local cni插件](https://www.cni.dev/plugins/ipam/host-local/)
