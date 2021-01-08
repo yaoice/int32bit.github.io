@@ -187,8 +187,9 @@ NETWORKING_IPV6=yes
 IPV6INIT=yes
 IPV6_AUTOCONF=no
 IPV6ADDR=2003:ac18::30a:1/64
+IPV6_DEFAULTGW=2003:ac18::30a:ff/64
 
-#配置ipv6网关
+#临时生效，配置ipv6网关
 # route -A inet6 add default gw 2003:ac18::30a:254
 
 #sysctl参数启用ipv6

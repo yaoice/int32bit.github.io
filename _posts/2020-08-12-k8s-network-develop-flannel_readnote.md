@@ -693,6 +693,17 @@ ip netns exec test1 ip neigh replace 169.254.1.1 dev eth0 lladdr <宿主机veth1
 
 #### vxlan介绍
 
+>Linux 对 VXLAN 协议的支持时间并不久，2012年Stephen Hemminger才把相关的工作合并到kernel中，并最终出现在kernel 3.7.0版本。
+>为了稳定性和很多的功能，可能会看到某些软件推荐在3.9.0或者3.10.0以后版本的kernel上使用VXLAN。 
+>到了 kernel 3.12版本，Linux对VXLAN的支持已经完备，支持单播和组播，IPv4和IPv6。利用man查看ip的link子命令，可以查看是否有VXLAN type：
+```
+#查看vxlan是否支持ipv6
+# lsmod |grep vxlan
+vxlan                  69632  0
+ip6_udp_tunnel         16384  1 vxlan
+udp_tunnel             16384  1 vxlan
+```
+
 >VXLAN的全称为Virtual eXtensible LAN，从名称看，它的目标就是扩展VLAN协议。802.1Q的VLAN TAG只占12位，只能提供4096个网络标识符。
 >而在VXLAN中，标识符扩展到24位，能提供16777216个逻辑网络标识符，VXLAN的标识符称为VNI(VXLAN Network Identifier)。
 >另外，VLAN只能应用在一个二层网络中，而VXLAN通过将原始二层以太网帧封装在IP协议包中，在IP基础网络之上构建overlay的逻辑大二层网络。
@@ -775,7 +786,6 @@ node2   |            | eth0       |               |            | eth0       | no
                      |                                         |
          +-----------+-----------------------------------------+---------------+
 ```
-
 
 node1操作
 ```
@@ -1043,6 +1053,11 @@ bridge fdb append ea:da:ea:f7:13:be dev vxlan100 dst 192.168.104.111
 
 Docker的libnetwork VXLAN模式以及Flannel的VXLAN模式都使用类似上述模式来实现Docker overlay网络，具体操作如下
 
+通过`man ip-link`和`man ip-netns`可以查看命令使用方式，还可以man其它子命令
+```
+ip-address(8), ip-addrlabel(8), ip-l2tp(8), ip-link(8), ip-maddress(8), ip-monitor(8), ip-mroute(8), ip-neighbour(8), ip-netns(8), 
+ip-ntable(8), ip-route(8), ip-rule(8), ip-tcp_metrics(8), ip-token(8), ip-tunnel(8), ip-xfrm(8)
+```
 node1操作
 ```
 sysctl -w net.ipv4.ip_forward=1
