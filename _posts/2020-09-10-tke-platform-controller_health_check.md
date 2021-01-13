@@ -7,6 +7,10 @@ tags:
      - tkestack
 ---
 
+### 环境
+
+tke版本: v0.12.2
+
 ### 现象
 
 #### Cluster对象错误日志
@@ -445,7 +449,7 @@ type Updater interface {
 }
 ```
 
-#### create Validate执行逻辑
+#### create cluster Validate执行逻辑
 ```
 func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
                         |
@@ -462,8 +466,142 @@ func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation
 // Validate validates a new cluster
 func (s *Strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
 	return ValidateCluster(s.clusterProviders, obj.(*platform.Cluster), s.platformClient, true)
-}         
+} 
 ```
+
+ValidateCluster函数
+```
+// ValidateCluster tests if required fields in the cluster are set.
+func ValidateCluster(clusterProviders *sync.Map, obj *platform.Cluster, platformClient platforminternalclient.PlatformInterface, create bool) field.ErrorList {
+	allErrs := apiMachineryValidation.ValidateObjectMeta(&obj.ObjectMeta, false, ValidateClusterName, field.NewPath("metadata"))
+	if create {
+        //这里有ValidateLicenseLimit检验License的逻辑在这里
+		allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
+	}
+
+	if obj.Spec.Properties.MaxNodePodNum != nil {
+		if !util.InInt32Slice(nodePodNumAvails, *obj.Spec.Properties.MaxNodePodNum) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxNodePodNum"), *obj.Spec.Properties.MaxNodePodNum, fmt.Sprintf("must in values of `%#v`", nodePodNumAvails)))
+		}
+	}
+
+	if obj.Spec.Properties.MaxClusterServiceNum != nil {
+		if !util.InInt32Slice(clusterServiceNumAvails, *obj.Spec.Properties.MaxClusterServiceNum) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxClusterServiceNum"), *obj.Spec.Properties.MaxClusterServiceNum, fmt.Sprintf("must in values of `%#v`", clusterServiceNumAvails)))
+		}
+	}
+
+	if obj.Spec.Type == "" {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), fmt.Sprintf("availble type are %v", types)))
+	} else {
+		if !funk.Contains(types, obj.Spec.Type) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
+		} else {
+			if obj.Spec.Type == platform.ClusterImported {
+				if len(obj.Status.Addresses) == 0 {
+					allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses"), "must specify at least one obj access address"))
+				} else {
+					for _, address := range obj.Status.Addresses {
+						if address.Host == "" {
+							allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "host"), "must specify the ip of address"))
+						}
+						if address.Port == 0 {
+							allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "port"), "must specify the port of address"))
+						}
+						_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", address.Host, address.Port), 5*time.Second)
+						if err != nil {
+							allErrs = append(allErrs, field.Invalid(field.NewPath("status", "addresses"), address, err.Error()))
+						}
+					}
+				}
+			} else {
+				clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(obj.Spec.Type))
+				if err != nil {
+					allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+				}
+
+				resp, err := clusterProvider.Validate(*obj)
+				if err != nil {
+					allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+				}
+				allErrs = append(allErrs, resp...)
+			}
+		}
+	}
+	return allErrs
+}
+```
+
+`ValidateLicenseLimit`校验License这里到底做了什么呢？
+```
+// ValidateLicenseLimit validate user license limit
+func ValidateLicenseLimit(platformClient platforminternalclient.PlatformInterface) field.ErrorList {
+	var allErrs field.ErrorList
+
+	if !filter.RunInPod || platformClient == nil { //没有运行在pod中，一般是自测环境，不校验License
+		return allErrs
+	}
+    //获取所有集群
+	clusters, err := platformClient.Clusters().List(metav1.ListOptions{})
+	if err != nil {
+		allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "name"), syserr.New("List clusters fail where check license ")))
+	} else {
+		clusterNum := len(clusters.Items)
+		sysClusterNum := 0
+		if filter.RunInPod { //global 集群的pod中。global 集群是系统创建的，不计入用户集群数目
+			sysClusterNum = 1
+		}
+		clusterNum = clusterNum - sysClusterNum
+        //校验集群数量是不是超过License里定义的最大数量
+		if clusterNum >= filter.LicenseInfo.Cluster.MaxNum {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cluster num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNum)))
+		}
+		totalNodeNum := 0
+		totalCPUNum := 0
+        //遍历集群，global集群除外
+		for _, cluster := range clusters.Items {
+			credential, err := util.ClusterCredential(platformClient, cluster.Name)
+			if err != nil {
+				continue
+			}
+			client, err := util.BuildClientSet(&cluster, credential)
+			if err != nil {
+				log.Warn("connect user cluster fail when check license limit " + err.Error())
+				continue
+			}
+            // calcClusterResource函数是遍历集群中的所有节点，累加计算节点cpu capacity
+			nodeNum, cpuNum, err := calcClusterResource(client)
+			if err != nil {
+				log.Warn("calc cluster resource fail when check license limit " + err.Error())
+				continue
+			}
+			if cluster.Name != "global" { //global 集群的pod中。global 集群是系统创建的，不计入用户集群
+                //累加计算所有集群的节点数和cpu总数
+				totalNodeNum = totalNodeNum + nodeNum
+				totalCPUNum = totalCPUNum + cpuNum
+			}
+		}
+        //License校验是否超出最大节点总数
+		if totalNodeNum >= filter.LicenseInfo.Cluster.MaxNodeNum {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the node num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNodeNum)))
+		}
+        //License校验是否超出最大cpu总数
+		if totalCPUNum >= filter.LicenseInfo.Cluster.MaxCPUNum {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cpu num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxCPUNum)))
+		}
+		log.Infof("ValidateLicenseLimit current cluster num %d, max cluster num %d, current node num %d, max node num %d, current cpu num %d, max cpu num %d",
+			clusterNum, filter.LicenseInfo.Cluster.MaxNum, totalNodeNum, filter.LicenseInfo.Cluster.MaxNodeNum, totalCPUNum, filter.LicenseInfo.Cluster.MaxCPUNum)
+	}
+
+	return allErrs
+}
+```
+`ValidateLicenseLimit`做了这些工作：
+1. 获取所有集群列表，后续计算时把global集群除外
+2. 校验集群数量
+3. 遍历集群（global除外），再遍历集群的节点，累加所有集群所有计算节点的总cpu capacity以及所有集群总节点数
+4. 校验节点总数
+5. 校验cpu总数
 
 最终调用baremental-cluster-provider中的Validate
 ```
@@ -546,8 +684,7 @@ func (p *Provider) Validate(c platform.Cluster) (field.ErrorList, error) {
 ```
 遍历c.Spec.Machines，并逐个进行ping测试
 
-
-#### update Validate执行逻辑
+#### update cluster Validate执行逻辑
 ```
 func (e *Store) Update(ctx context.Context, name string, objInfo rest.UpdatedObjectInfo, createValidation rest.ValidateObjectFunc, updateValidation rest.ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error)
                         |
@@ -603,7 +740,138 @@ func (p *Provider) ValidateUpdate(cluster platform.Cluster, oldCluster platform.
 
 上面看了Cluster api的validate操作，create/update cluster对象的时候最终都会进行ssh ping检查操作，如果ssh ping检查失败的话也会引起cluster
 对象健康检查失败.
-                                    
+
+#### create machine Validate执行逻辑
+
+create machine Validate走的也是这个流程
+```
+func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation rest.ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
+                        |
+                        |
+                        v
+       rest.BeforeCreate(e.CreateStrategy, ctx, obj)
+                        |
+                        |
+                        v
+         strategy.Validate(ctx, obj)
+```
+
+最终走到machine的Validate函数，machine的Validate做了哪些校验的工作呢？
+```
+// Validate tests if required fields in the machine are set.
+func Validate(machineProviders *sync.Map, obj *platform.Machine, platformClient platforminternalclient.PlatformInterface) field.ErrorList {
+	var err error
+	allErrs := apiMachineryvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, apiMachineryvalidation.NameIsDNSLabel, field.NewPath("metadata"))
+
+    //跟创建集群一样有ValidateLicenseLimit校验
+	allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
+	// validate Type
+	if obj.Spec.Type == "" {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), "must specify machine type"))
+	} else {
+		if !funk.Contains(types, obj.Spec.Type) {
+			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
+		}
+		p, err := provider.LoadMachineProvider(machineProviders, string(obj.Spec.Type))
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+		} else {
+            //这里调用了machine provider的Validate
+			resp, err := p.Validate(*obj)
+			if err != nil {
+				allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+			}
+			allErrs = append(allErrs, resp...)
+		}
+	}
+
+	// validate ClusterName
+	var machineList *platform.MachineList
+	var cluster *platform.Cluster
+    //校验集群是否存在
+	clusterErrs := validation.ValidateCluster(platformClient, obj.Spec.ClusterName)
+	if clusterErrs != nil {
+		allErrs = append(allErrs, clusterErrs...)
+	} else {
+		cluster, err = platformClient.Clusters().Get(obj.Spec.ClusterName, metav1.GetOptions{})
+		if err != nil {
+			allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
+				fmt.Errorf("can't get cluster:%s", err)))
+		} else {
+            //计算最大节点数
+			_, cidr, _ := net.ParseCIDR(cluster.Spec.ClusterCIDR)
+			ones, _ := cidr.Mask.Size()
+			maxNode := math.Exp2(float64(cluster.Status.NodeCIDRMaskSize - int32(ones)))
+
+			fieldSelector := fmt.Sprintf("spec.clusterName=%s", obj.Spec.ClusterName)
+            //获取machine列表
+			machineList, err = platformClient.Machines().List(metav1.ListOptions{FieldSelector: fieldSelector})
+			if err != nil {
+				allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
+					fmt.Errorf("list machines of the cluster error:%s", err)))
+			} else {
+                //对比machine总数和最大节点数
+				machineSize := len(machineList.Items)
+				if machineSize >= int(maxNode) {
+					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"),
+						fmt.Sprintf("the cluster's machine upper limit(%d) has been reached", int(maxNode))))
+				}
+			}
+		}
+	}
+
+	// validate IP
+	if obj.Spec.IP == "" {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify IP"))
+	} else {
+		if machineList != nil {
+			for _, machine := range machineList.Items {
+				if machine.Spec.IP == obj.Spec.IP {
+					allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
+				}
+			}
+		}
+		if cluster != nil {
+			for _, machine := range cluster.Spec.Machines {
+				if machine.IP == obj.Spec.IP {
+					allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
+				}
+			}
+		}
+	}
+	if obj.Spec.Port == 0 {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify Port"))
+	}
+
+	// validate ssh
+	if obj.Spec.Password == nil && obj.Spec.PrivateKey == nil {
+		allErrs = append(allErrs, field.Required(field.NewPath("spec", "password"), "password or privateKey at least one"))
+	}
+    //ssh登录校验
+	sshConfig := &ssh.Config{
+		User:        obj.Spec.Username,
+		Host:        obj.Spec.IP,
+		Port:        int(obj.Spec.Port),
+		Password:    string(obj.Spec.Password),
+		PrivateKey:  obj.Spec.PrivateKey,
+		PassPhrase:  obj.Spec.PassPhrase,
+		DialTimeOut: time.Second,
+		Retry:       0,
+	}
+	s, err := ssh.New(sshConfig)
+	if err != nil {
+		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
+	} else {
+		err = s.Ping()
+		if err != nil {
+			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
+		}
+	}
+
+	return allErrs
+}
+```
+                                   
 ### 参考链接
 
 - [https://github.com/tkestack/tke](https://github.com/tkestack/tke)
