@@ -66,35 +66,35 @@ tke版本: v0.12.2
 查阅tke-platform-controller代码`tke/pkg/platform/controller/cluster/cluster_controller.go`
 
 ```
-	// configure the namespace informer event handlers
-	clusterInformer.Informer().AddEventHandlerWithResyncPeriod(
-		cache.ResourceEventHandlerFuncs{
-			AddFunc: controller.enqueueCluster,
-			UpdateFunc: func(oldObj, newObj interface{}) {
-				oldCluster, ok1 := oldObj.(*platformv1.Cluster)
-				curCluster, ok2 := newObj.(*platformv1.Cluster)
-				if ok1 && ok2 && controller.needsUpdate(oldCluster, curCluster) {
-					controller.enqueueCluster(newObj)
-				} else {
-					log.Debug("Update new cluster not to add", log.String("clusterName", curCluster.Name), log.String("resourceversion", curCluster.ResourceVersion), log.String("old-resourceversion", oldCluster.ResourceVersion), log.String("cur-resourceversion", curCluster.ResourceVersion))
-				}
-			},
-		},
-		resyncPeriod,
-	)
+    // configure the namespace informer event handlers
+    clusterInformer.Informer().AddEventHandlerWithResyncPeriod(
+        cache.ResourceEventHandlerFuncs{
+            AddFunc: controller.enqueueCluster,
+            UpdateFunc: func(oldObj, newObj interface{}) {
+                oldCluster, ok1 := oldObj.(*platformv1.Cluster)
+                curCluster, ok2 := newObj.(*platformv1.Cluster)
+                if ok1 && ok2 && controller.needsUpdate(oldCluster, curCluster) {
+                    controller.enqueueCluster(newObj)
+                } else {
+                    log.Debug("Update new cluster not to add", log.String("clusterName", curCluster.Name), log.String("resourceversion", curCluster.ResourceVersion), log.String("old-resourceversion", oldCluster.ResourceVersion), log.String("cur-resourceversion", curCluster.ResourceVersion))
+                }
+            },
+        },
+        resyncPeriod,
+    )
 ```
 
 ```
 func (c *Controller) needsUpdate(old *platformv1.Cluster, new *platformv1.Cluster) bool {
-	if !reflect.DeepEqual(old.Spec, new.Spec) {
-		return true
-	}
+    if !reflect.DeepEqual(old.Spec, new.Spec) {
+        return true
+    }
 
-	if !reflect.DeepEqual(old.Status, new.Status) {
-		return true
-	}
+    if !reflect.DeepEqual(old.Status, new.Status) {
+        return true
+    }
 
-	return false
+    return false
 }
 ```
 基于cluster资源对象的clusterInformer，如果前后cluster对象的Spec和Status字段不变，则不把新对象放入工作队列
@@ -117,13 +117,13 @@ Run -> worker -> processNextWorkItem -> syncCluster ---> processClusterUpdate ->
 进行集群健康检查的话，最终会调用到ensureHealthCheck函数
 ```
 func (c *Controller) ensureHealthCheck(key string, cluster *v1.Cluster) {
-	if c.health.Exist(key) {
-		return
-	}
+    if c.health.Exist(key) {
+        return
+    }
 
-	log.Info("start health check for cluster", log.String("clusterName", key), log.String("phase", string(cluster.Status.Phase)))
-	c.health.Set(cluster)
-	go wait.PollImmediateUntil(5*time.Minute, c.watchClusterHealth(cluster.Name), c.stopCh)
+    log.Info("start health check for cluster", log.String("clusterName", key), log.String("phase", string(cluster.Status.Phase)))
+    c.health.Set(cluster)
+    go wait.PollImmediateUntil(5*time.Minute, c.watchClusterHealth(cluster.Name), c.stopCh)
 }
 ```
 有这样一段逻辑，如果c.health中的map存在key(集群的name,如：cls-bd46179d)就直接返回了，第一次执行的时候会加入到map中，什么时候会从c.health中移除？
@@ -132,42 +132,42 @@ func (c *Controller) ensureHealthCheck(key string, cluster *v1.Cluster) {
 不一致的话则触发processClusterDelete函数
 ```
 func (c *Controller) processClusterUpdate(cachedCluster *cachedCluster, cluster *platformv1.Cluster, key string) error {
-	if cachedCluster.state != nil {
-		if cachedCluster.state.UID != cluster.UID {
-			err := c.processClusterDelete(key)
-			if err != nil {
-				return err
-			}
-		}
-	}
+    if cachedCluster.state != nil {
+        if cachedCluster.state.UID != cluster.UID {
+            err := c.processClusterDelete(key)
+            if err != nil {
+                return err
+            }
+        }
+    }
 
-	// start update cluster if needed
-	err := c.handlePhase(key, cachedCluster, cluster)
-	if err != nil {
-		return err
-	}
+    // start update cluster if needed
+    err := c.handlePhase(key, cachedCluster, cluster)
+    if err != nil {
+        return err
+    }
     // 第一次执行的话，放入c.cache中
-	cachedCluster.state = cluster
-	// Always update the cache upon success.
-	c.cache.set(key, cachedCluster)
+    cachedCluster.state = cluster
+    // Always update the cache upon success.
+    c.cache.set(key, cachedCluster)
 
-	return nil
+    return nil
 }
 
 func (c *Controller) processClusterDelete(key string) error {
-	log.Info("Cluster will be dropped", log.String("clusterName", key))
+    log.Info("Cluster will be dropped", log.String("clusterName", key))
 
-	if c.cache.Exist(key) {
-		log.Info("Delete the cluster cache", log.String("clusterName", key))
-		c.cache.delete(key)
-	}
+    if c.cache.Exist(key) {
+        log.Info("Delete the cluster cache", log.String("clusterName", key))
+        c.cache.delete(key)
+    }
 
-	if c.health.Exist(key) {
-		log.Info("Delete the cluster health cache", log.String("clusterName", key))
-		c.health.Del(key)
-	}
+    if c.health.Exist(key) {
+        log.Info("Delete the cluster health cache", log.String("clusterName", key))
+        c.health.Del(key)
+    }
 
-	return nil
+    return nil
 }
 ```
 如果cachedCluster没失效的话，ensureHealthCheck就只会执行一次. watchClusterHealth会每隔5分钟执行一次
@@ -204,19 +204,19 @@ func PollUntil(interval time.Duration, condition ConditionFunc, stopCh <-chan st
 // PollImmediateUntil runs the 'condition' before waiting for the interval.
 // 'condition' will always be invoked at least once.
 func PollImmediateUntil(interval time.Duration, condition ConditionFunc, stopCh <-chan struct{}) error {
-	done, err := condition()
-	if err != nil {
-		return err
-	}
-	if done {
-		return nil
-	}
-	select {
-	case <-stopCh:
-		return ErrWaitTimeout
-	default:
-		return PollUntil(interval, condition, stopCh)
-	}
+    done, err := condition()
+    if err != nil {
+        return err
+    }
+    if done {
+        return nil
+    }
+    select {
+    case <-stopCh:
+        return ErrWaitTimeout
+    default:
+        return PollUntil(interval, condition, stopCh)
+    }
 }
 ```
 执行watchClusterHealth，如果不是找不到这个集群或者集群处于Terminating的状态，最终会调用到checkClusterHealth
@@ -224,143 +224,143 @@ func PollImmediateUntil(interval time.Duration, condition ConditionFunc, stopCh 
 ```
 // for PollImmediateUntil, when return true ,an err while exit
 func (c *Controller) watchClusterHealth(clusterName string) func() (bool, error) {
-	return func() (bool, error) {
-		log.Info("Check cluster health", log.String("clusterName", clusterName))
+    return func() (bool, error) {
+        log.Info("Check cluster health", log.String("clusterName", clusterName))
 
-		cluster, err := c.client.PlatformV1().Clusters().Get(clusterName, metav1.GetOptions{})
-		if err != nil {
-			if errors.IsNotFound(err) {
-				log.Warn("Cluster not found, to exit the health check loop", log.String("clusterName", clusterName))
-				return true, nil
-			}
-			log.Error("Check cluster health, cluster get failed", log.String("clusterName", clusterName), log.Err(err))
-			return false, nil
-		}
+        cluster, err := c.client.PlatformV1().Clusters().Get(clusterName, metav1.GetOptions{})
+        if err != nil {
+            if errors.IsNotFound(err) {
+                log.Warn("Cluster not found, to exit the health check loop", log.String("clusterName", clusterName))
+                return true, nil
+            }
+            log.Error("Check cluster health, cluster get failed", log.String("clusterName", clusterName), log.Err(err))
+            return false, nil
+        }
 
-		if cluster.Status.Phase == v1.ClusterTerminating {
-			log.Warn("Cluster status is Terminating, to exit the health check loop", log.String("clusterName", cluster.Name))
-			return true, nil
-		}
+        if cluster.Status.Phase == v1.ClusterTerminating {
+            log.Warn("Cluster status is Terminating, to exit the health check loop", log.String("clusterName", cluster.Name))
+            return true, nil
+        }
 
-		_ = c.checkClusterHealth(cluster)
-		return false, nil
-	}
+        _ = c.checkClusterHealth(cluster)
+        return false, nil
+    }
 }
 ```
 
 ```
 func (c *Controller) checkClusterHealth(cluster *v1.Cluster) error {
-	// wait for create clustercredential, optimize first health check for user experience
-	if cluster.Status.Phase == v1.ClusterInitializing {
-		err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
-			_, err := util.ClusterCredentialV1(c.client.PlatformV1(), cluster.Name)
-			if err != nil {
-				return false, nil
-			}
-			return true, nil
-		})
-		if err != nil { // not return! execute next steps to show reason for user
-			log.Warn("wait for create clustercredential error", log.String("clusterName", cluster.Name))
-		}
-	}
-	kubeClient, err := util.BuildExternalClientSet(cluster, c.client.PlatformV1())
-	if err != nil {
-		cluster.Status.Phase = v1.ClusterFailed
-		cluster.Status.Message = err.Error()
-		cluster.Status.Reason = reasonHealthCheckFail
-		now := metav1.Now()
-		c.addOrUpdateCondition(cluster, v1.ClusterCondition{
-			Type:               conditionTypeHealthCheck,
-			Status:             v1.ConditionFalse,
-			Message:            err.Error(),
-			Reason:             reasonHealthCheckFail,
-			LastTransitionTime: now,
-			LastProbeTime:      now,
-		})
-		if err1 := c.persistUpdate(cluster); err1 != nil {
-			log.Warn("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err1))
-			return err1
-		}
-		log.Warn("Failed to build the cluster client", log.String("clusterName", cluster.Name), log.Err(err))
-		return err
-	}
+    // wait for create clustercredential, optimize first health check for user experience
+    if cluster.Status.Phase == v1.ClusterInitializing {
+        err := wait.PollImmediate(time.Second, time.Minute, func() (bool, error) {
+            _, err := util.ClusterCredentialV1(c.client.PlatformV1(), cluster.Name)
+            if err != nil {
+                return false, nil
+            }
+            return true, nil
+        })
+        if err != nil { // not return! execute next steps to show reason for user
+            log.Warn("wait for create clustercredential error", log.String("clusterName", cluster.Name))
+        }
+    }
+    kubeClient, err := util.BuildExternalClientSet(cluster, c.client.PlatformV1())
+    if err != nil {
+        cluster.Status.Phase = v1.ClusterFailed
+        cluster.Status.Message = err.Error()
+        cluster.Status.Reason = reasonHealthCheckFail
+        now := metav1.Now()
+        c.addOrUpdateCondition(cluster, v1.ClusterCondition{
+            Type:               conditionTypeHealthCheck,
+            Status:             v1.ConditionFalse,
+            Message:            err.Error(),
+            Reason:             reasonHealthCheckFail,
+            LastTransitionTime: now,
+            LastProbeTime:      now,
+        })
+        if err1 := c.persistUpdate(cluster); err1 != nil {
+            log.Warn("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err1))
+            return err1
+        }
+        log.Warn("Failed to build the cluster client", log.String("clusterName", cluster.Name), log.Err(err))
+        return err
+    }
 
-	res, err := c.caclClusterResource(kubeClient)
-	if err != nil {
-		cluster.Status.Phase = v1.ClusterFailed
-		cluster.Status.Message = err.Error()
-		cluster.Status.Reason = reasonHealthCheckFail
-		now := metav1.Now()
-		c.addOrUpdateCondition(cluster, v1.ClusterCondition{
-			Type:               conditionTypeHealthCheck,
-			Status:             v1.ConditionFalse,
-			Message:            err.Error(),
-			Reason:             reasonHealthCheckFail,
-			LastTransitionTime: now,
-			LastProbeTime:      now,
-		})
-		if err1 := c.persistUpdate(cluster); err1 != nil {
-			log.Warn("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err1))
-			return err1
-		}
-		log.Warn("Failed to build the cluster client", log.String("clusterName", cluster.Name), log.Err(err))
-		return err
-	}
-	cluster.Status.Resource = *res
+    res, err := c.caclClusterResource(kubeClient)
+    if err != nil {
+        cluster.Status.Phase = v1.ClusterFailed
+        cluster.Status.Message = err.Error()
+        cluster.Status.Reason = reasonHealthCheckFail
+        now := metav1.Now()
+        c.addOrUpdateCondition(cluster, v1.ClusterCondition{
+            Type:               conditionTypeHealthCheck,
+            Status:             v1.ConditionFalse,
+            Message:            err.Error(),
+            Reason:             reasonHealthCheckFail,
+            LastTransitionTime: now,
+            LastProbeTime:      now,
+        })
+        if err1 := c.persistUpdate(cluster); err1 != nil {
+            log.Warn("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err1))
+            return err1
+        }
+        log.Warn("Failed to build the cluster client", log.String("clusterName", cluster.Name), log.Err(err))
+        return err
+    }
+    cluster.Status.Resource = *res
 
-	_, err = kubeClient.CoreV1().Namespaces().List(metav1.ListOptions{})
-	if err != nil {
-		cluster.Status.Phase = v1.ClusterFailed
-		cluster.Status.Message = err.Error()
-		cluster.Status.Reason = reasonHealthCheckFail
-		c.addOrUpdateCondition(cluster, v1.ClusterCondition{
-			Type:          conditionTypeHealthCheck,
-			Status:        v1.ConditionFalse,
-			Message:       err.Error(),
-			Reason:        reasonHealthCheckFail,
-			LastProbeTime: metav1.Now(),
-		})
-	} else {
-		cluster.Status.Phase = v1.ClusterRunning
-		cluster.Status.Message = ""
-		cluster.Status.Reason = ""
-		c.addOrUpdateCondition(cluster, v1.ClusterCondition{
-			Type:          conditionTypeHealthCheck,
-			Status:        v1.ConditionTrue,
-			Message:       "",
-			Reason:        "",
-			LastProbeTime: metav1.Now(),
-		})
+    _, err = kubeClient.CoreV1().Namespaces().List(metav1.ListOptions{})
+    if err != nil {
+        cluster.Status.Phase = v1.ClusterFailed
+        cluster.Status.Message = err.Error()
+        cluster.Status.Reason = reasonHealthCheckFail
+        c.addOrUpdateCondition(cluster, v1.ClusterCondition{
+            Type:          conditionTypeHealthCheck,
+            Status:        v1.ConditionFalse,
+            Message:       err.Error(),
+            Reason:        reasonHealthCheckFail,
+            LastProbeTime: metav1.Now(),
+        })
+    } else {
+        cluster.Status.Phase = v1.ClusterRunning
+        cluster.Status.Message = ""
+        cluster.Status.Reason = ""
+        c.addOrUpdateCondition(cluster, v1.ClusterCondition{
+            Type:          conditionTypeHealthCheck,
+            Status:        v1.ConditionTrue,
+            Message:       "",
+            Reason:        "",
+            LastProbeTime: metav1.Now(),
+        })
 
-		// update version info
-		if cluster.Status.Version == "" {
-			log.Debug("Update version info", log.String("clusterName", cluster.Name))
-			if version, err := kubeClient.ServerVersion(); err == nil {
-				entireVersion, err := semver.ParseTolerant(version.GitVersion)
-				if err != nil {
-					return err
-				}
-				pureVersion := semver.Version{Major: entireVersion.Major, Minor: entireVersion.Minor, Patch: entireVersion.Patch}
-				log.Info("Set cluster version", log.String("clusterName", cluster.Name), log.String("version", pureVersion.String()), log.String("entireVersion", entireVersion.String()))
-				cluster.Status.Version = pureVersion.String()
-				now := metav1.Now()
-				c.addOrUpdateCondition(cluster, v1.ClusterCondition{
-					Type:               conditionTypeSyncVersion,
-					Status:             v1.ConditionTrue,
-					Message:            "",
-					Reason:             "",
-					LastProbeTime:      now,
-					LastTransitionTime: now,
-				})
-			}
-		}
-	}
+        // update version info
+        if cluster.Status.Version == "" {
+            log.Debug("Update version info", log.String("clusterName", cluster.Name))
+            if version, err := kubeClient.ServerVersion(); err == nil {
+                entireVersion, err := semver.ParseTolerant(version.GitVersion)
+                if err != nil {
+                    return err
+                }
+                pureVersion := semver.Version{Major: entireVersion.Major, Minor: entireVersion.Minor, Patch: entireVersion.Patch}
+                log.Info("Set cluster version", log.String("clusterName", cluster.Name), log.String("version", pureVersion.String()), log.String("entireVersion", entireVersion.String()))
+                cluster.Status.Version = pureVersion.String()
+                now := metav1.Now()
+                c.addOrUpdateCondition(cluster, v1.ClusterCondition{
+                    Type:               conditionTypeSyncVersion,
+                    Status:             v1.ConditionTrue,
+                    Message:            "",
+                    Reason:             "",
+                    LastProbeTime:      now,
+                    LastTransitionTime: now,
+                })
+            }
+        }
+    }
 
-	if err := c.persistUpdate(cluster); err != nil {
-		log.Error("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err))
-		return err
-	}
-	return err
+    if err := c.persistUpdate(cluster); err != nil {
+        log.Error("Update cluster status failed", log.String("clusterName", cluster.Name), log.Err(err))
+        return err
+    }
+    return err
 }
 ```
 checkClusterHealth执行逻辑：
@@ -421,31 +421,31 @@ validated的操作具体是定义在哪里呢？platform-api也是k8s aggregator
 // Resources which are exported to the RESTful API of apiserver need to implement this interface. It is expected
 // that objects may implement any of the below interfaces.
 type Storage interface {
-	// New returns an empty object that can be used with Create and Update after request data has been put into it.
-	// This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
-	New() runtime.Object
+    // New returns an empty object that can be used with Create and Update after request data has been put into it.
+    // This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
+    New() runtime.Object
 }
 
 // Creater is an object that can create an instance of a RESTful object.
 type Creater interface {
-	// New returns an empty object that can be used with Create after request data has been put into it.
-	// This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
-	New() runtime.Object
+    // New returns an empty object that can be used with Create after request data has been put into it.
+    // This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
+    New() runtime.Object
 
-	// Create creates a new version of a resource.
-	Create(ctx context.Context, obj runtime.Object, createValidation ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
+    // Create creates a new version of a resource.
+    Create(ctx context.Context, obj runtime.Object, createValidation ValidateObjectFunc, options *metav1.CreateOptions) (runtime.Object, error)
 }
 
 // Updater is an object that can update an instance of a RESTful object.
 type Updater interface {
-	// New returns an empty object that can be used with Update after request data has been put into it.
-	// This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
-	New() runtime.Object
+    // New returns an empty object that can be used with Update after request data has been put into it.
+    // This object must be a pointer type for use with Codec.DecodeInto([]byte, runtime.Object)
+    New() runtime.Object
 
-	// Update finds a resource in the storage and updates it. Some implementations
-	// may allow updates creates the object - they should set the created boolean
-	// to true.
-	Update(ctx context.Context, name string, objInfo UpdatedObjectInfo, createValidation ValidateObjectFunc, updateValidation ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error)
+    // Update finds a resource in the storage and updates it. Some implementations
+    // may allow updates creates the object - they should set the created boolean
+    // to true.
+    Update(ctx context.Context, name string, objInfo UpdatedObjectInfo, createValidation ValidateObjectFunc, updateValidation ValidateObjectUpdateFunc, forceAllowCreate bool, options *metav1.UpdateOptions) (runtime.Object, bool, error)
 }
 ```
 
@@ -465,7 +465,7 @@ func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation
 
 // Validate validates a new cluster
 func (s *Strategy) Validate(ctx context.Context, obj runtime.Object) field.ErrorList {
-	return ValidateCluster(s.clusterProviders, obj.(*platform.Cluster), s.platformClient, true)
+    return ValidateCluster(s.clusterProviders, obj.(*platform.Cluster), s.platformClient, true)
 } 
 ```
 
@@ -473,62 +473,62 @@ ValidateCluster函数
 ```
 // ValidateCluster tests if required fields in the cluster are set.
 func ValidateCluster(clusterProviders *sync.Map, obj *platform.Cluster, platformClient platforminternalclient.PlatformInterface, create bool) field.ErrorList {
-	allErrs := apiMachineryValidation.ValidateObjectMeta(&obj.ObjectMeta, false, ValidateClusterName, field.NewPath("metadata"))
-	if create {
+    allErrs := apiMachineryValidation.ValidateObjectMeta(&obj.ObjectMeta, false, ValidateClusterName, field.NewPath("metadata"))
+    if create {
         //这里有ValidateLicenseLimit检验License的逻辑在这里
-		allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
-	}
+        allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
+    }
 
-	if obj.Spec.Properties.MaxNodePodNum != nil {
-		if !util.InInt32Slice(nodePodNumAvails, *obj.Spec.Properties.MaxNodePodNum) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxNodePodNum"), *obj.Spec.Properties.MaxNodePodNum, fmt.Sprintf("must in values of `%#v`", nodePodNumAvails)))
-		}
-	}
+    if obj.Spec.Properties.MaxNodePodNum != nil {
+        if !util.InInt32Slice(nodePodNumAvails, *obj.Spec.Properties.MaxNodePodNum) {
+            allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxNodePodNum"), *obj.Spec.Properties.MaxNodePodNum, fmt.Sprintf("must in values of `%#v`", nodePodNumAvails)))
+        }
+    }
 
-	if obj.Spec.Properties.MaxClusterServiceNum != nil {
-		if !util.InInt32Slice(clusterServiceNumAvails, *obj.Spec.Properties.MaxClusterServiceNum) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxClusterServiceNum"), *obj.Spec.Properties.MaxClusterServiceNum, fmt.Sprintf("must in values of `%#v`", clusterServiceNumAvails)))
-		}
-	}
+    if obj.Spec.Properties.MaxClusterServiceNum != nil {
+        if !util.InInt32Slice(clusterServiceNumAvails, *obj.Spec.Properties.MaxClusterServiceNum) {
+            allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "properties", "maxClusterServiceNum"), *obj.Spec.Properties.MaxClusterServiceNum, fmt.Sprintf("must in values of `%#v`", clusterServiceNumAvails)))
+        }
+    }
 
-	if obj.Spec.Type == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), fmt.Sprintf("availble type are %v", types)))
-	} else {
-		if !funk.Contains(types, obj.Spec.Type) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
-		} else {
-			if obj.Spec.Type == platform.ClusterImported {
-				if len(obj.Status.Addresses) == 0 {
-					allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses"), "must specify at least one obj access address"))
-				} else {
-					for _, address := range obj.Status.Addresses {
-						if address.Host == "" {
-							allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "host"), "must specify the ip of address"))
-						}
-						if address.Port == 0 {
-							allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "port"), "must specify the port of address"))
-						}
-						_, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", address.Host, address.Port), 5*time.Second)
-						if err != nil {
-							allErrs = append(allErrs, field.Invalid(field.NewPath("status", "addresses"), address, err.Error()))
-						}
-					}
-				}
-			} else {
-				clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(obj.Spec.Type))
-				if err != nil {
-					allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
-				}
+    if obj.Spec.Type == "" {
+        allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), fmt.Sprintf("availble type are %v", types)))
+    } else {
+        if !funk.Contains(types, obj.Spec.Type) {
+            allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
+        } else {
+            if obj.Spec.Type == platform.ClusterImported {
+                if len(obj.Status.Addresses) == 0 {
+                    allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses"), "must specify at least one obj access address"))
+                } else {
+                    for _, address := range obj.Status.Addresses {
+                        if address.Host == "" {
+                            allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "host"), "must specify the ip of address"))
+                        }
+                        if address.Port == 0 {
+                            allErrs = append(allErrs, field.Required(field.NewPath("status", "addresses", string(address.Type), "port"), "must specify the port of address"))
+                        }
+                        _, err := net.DialTimeout("tcp", fmt.Sprintf("%s:%d", address.Host, address.Port), 5*time.Second)
+                        if err != nil {
+                            allErrs = append(allErrs, field.Invalid(field.NewPath("status", "addresses"), address, err.Error()))
+                        }
+                    }
+                }
+            } else {
+                clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(obj.Spec.Type))
+                if err != nil {
+                    allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+                }
 
-				resp, err := clusterProvider.Validate(*obj)
-				if err != nil {
-					allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
-				}
-				allErrs = append(allErrs, resp...)
-			}
-		}
-	}
-	return allErrs
+                resp, err := clusterProvider.Validate(*obj)
+                if err != nil {
+                    allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+                }
+                allErrs = append(allErrs, resp...)
+            }
+        }
+    }
+    return allErrs
 }
 ```
 
@@ -536,64 +536,64 @@ func ValidateCluster(clusterProviders *sync.Map, obj *platform.Cluster, platform
 ```
 // ValidateLicenseLimit validate user license limit
 func ValidateLicenseLimit(platformClient platforminternalclient.PlatformInterface) field.ErrorList {
-	var allErrs field.ErrorList
+    var allErrs field.ErrorList
 
-	if !filter.RunInPod || platformClient == nil { //没有运行在pod中，一般是自测环境，不校验License
-		return allErrs
-	}
+    if !filter.RunInPod || platformClient == nil { //没有运行在pod中，一般是自测环境，不校验License
+        return allErrs
+    }
     //获取所有集群
-	clusters, err := platformClient.Clusters().List(metav1.ListOptions{})
-	if err != nil {
-		allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "name"), syserr.New("List clusters fail where check license ")))
-	} else {
-		clusterNum := len(clusters.Items)
-		sysClusterNum := 0
-		if filter.RunInPod { //global 集群的pod中。global 集群是系统创建的，不计入用户集群数目
-			sysClusterNum = 1
-		}
-		clusterNum = clusterNum - sysClusterNum
+    clusters, err := platformClient.Clusters().List(metav1.ListOptions{})
+    if err != nil {
+        allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "name"), syserr.New("List clusters fail where check license ")))
+    } else {
+        clusterNum := len(clusters.Items)
+        sysClusterNum := 0
+        if filter.RunInPod { //global 集群的pod中。global 集群是系统创建的，不计入用户集群数目
+            sysClusterNum = 1
+        }
+        clusterNum = clusterNum - sysClusterNum
         //校验集群数量是不是超过License里定义的最大数量
-		if clusterNum >= filter.LicenseInfo.Cluster.MaxNum {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cluster num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNum)))
-		}
-		totalNodeNum := 0
-		totalCPUNum := 0
+        if clusterNum >= filter.LicenseInfo.Cluster.MaxNum {
+            allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cluster num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNum)))
+        }
+        totalNodeNum := 0
+        totalCPUNum := 0
         //遍历集群，global集群除外
-		for _, cluster := range clusters.Items {
-			credential, err := util.ClusterCredential(platformClient, cluster.Name)
-			if err != nil {
-				continue
-			}
-			client, err := util.BuildClientSet(&cluster, credential)
-			if err != nil {
-				log.Warn("connect user cluster fail when check license limit " + err.Error())
-				continue
-			}
+        for _, cluster := range clusters.Items {
+            credential, err := util.ClusterCredential(platformClient, cluster.Name)
+            if err != nil {
+                continue
+            }
+            client, err := util.BuildClientSet(&cluster, credential)
+            if err != nil {
+                log.Warn("connect user cluster fail when check license limit " + err.Error())
+                continue
+            }
             // calcClusterResource函数是遍历集群中的所有节点，累加计算节点cpu capacity
-			nodeNum, cpuNum, err := calcClusterResource(client)
-			if err != nil {
-				log.Warn("calc cluster resource fail when check license limit " + err.Error())
-				continue
-			}
-			if cluster.Name != "global" { //global 集群的pod中。global 集群是系统创建的，不计入用户集群
+            nodeNum, cpuNum, err := calcClusterResource(client)
+            if err != nil {
+                log.Warn("calc cluster resource fail when check license limit " + err.Error())
+                continue
+            }
+            if cluster.Name != "global" { //global 集群的pod中。global 集群是系统创建的，不计入用户集群
                 //累加计算所有集群的节点数和cpu总数
-				totalNodeNum = totalNodeNum + nodeNum
-				totalCPUNum = totalCPUNum + cpuNum
-			}
-		}
+                totalNodeNum = totalNodeNum + nodeNum
+                totalCPUNum = totalCPUNum + cpuNum
+            }
+        }
         //License校验是否超出最大节点总数
-		if totalNodeNum >= filter.LicenseInfo.Cluster.MaxNodeNum {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the node num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNodeNum)))
-		}
+        if totalNodeNum >= filter.LicenseInfo.Cluster.MaxNodeNum {
+            allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the node num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxNodeNum)))
+        }
         //License校验是否超出最大cpu总数
-		if totalCPUNum >= filter.LicenseInfo.Cluster.MaxCPUNum {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cpu num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxCPUNum)))
-		}
-		log.Infof("ValidateLicenseLimit current cluster num %d, max cluster num %d, current node num %d, max node num %d, current cpu num %d, max cpu num %d",
-			clusterNum, filter.LicenseInfo.Cluster.MaxNum, totalNodeNum, filter.LicenseInfo.Cluster.MaxNodeNum, totalCPUNum, filter.LicenseInfo.Cluster.MaxCPUNum)
-	}
+        if totalCPUNum >= filter.LicenseInfo.Cluster.MaxCPUNum {
+            allErrs = append(allErrs, field.Forbidden(field.NewPath("spec", "name"), fmt.Sprintf("the cpu num upper limit(%d) has been reached", filter.LicenseInfo.Cluster.MaxCPUNum)))
+        }
+        log.Infof("ValidateLicenseLimit current cluster num %d, max cluster num %d, current node num %d, max node num %d, current cpu num %d, max cpu num %d",
+            clusterNum, filter.LicenseInfo.Cluster.MaxNum, totalNodeNum, filter.LicenseInfo.Cluster.MaxNodeNum, totalCPUNum, filter.LicenseInfo.Cluster.MaxCPUNum)
+    }
 
-	return allErrs
+    return allErrs
 }
 ```
 `ValidateLicenseLimit`做了这些工作：
@@ -607,7 +607,7 @@ func ValidateLicenseLimit(platformClient platforminternalclient.PlatformInterfac
 ```
 clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(obj.Spec.Type))
 if err != nil {
-	allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+    allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
 }
 
 resp, err := clusterProvider.Validate(*obj)
@@ -615,71 +615,71 @@ resp, err := clusterProvider.Validate(*obj)
 
 ```
 func (p *Provider) Validate(c platform.Cluster) (field.ErrorList, error) {
-	var allErrs field.ErrorList
+    var allErrs field.ErrorList
 
-	sPath := field.NewPath("spec")
+    sPath := field.NewPath("spec")
 
-	if !funk.ContainsString(versions, c.Spec.Version) {
-		allErrs = append(allErrs, field.Invalid(sPath.Child("version"), c.Spec.Version, fmt.Sprintf("valid versions are %q", versions)))
-	}
+    if !funk.ContainsString(versions, c.Spec.Version) {
+        allErrs = append(allErrs, field.Invalid(sPath.Child("version"), c.Spec.Version, fmt.Sprintf("valid versions are %q", versions)))
+    }
 
-	if c.Spec.ClusterCIDR == "" {
-		allErrs = append(allErrs, field.Required(sPath.Child("clusterCIDR"), ""))
-	} else {
-		_, _, err := net.ParseCIDR(c.Spec.ClusterCIDR)
-		if err != nil {
-			allErrs = append(allErrs, field.Invalid(sPath.Child("clusterCIDR"), c.Spec.ClusterCIDR, fmt.Sprintf("parse CIDR error:%s", err)))
-		}
-	}
+    if c.Spec.ClusterCIDR == "" {
+        allErrs = append(allErrs, field.Required(sPath.Child("clusterCIDR"), ""))
+    } else {
+        _, _, err := net.ParseCIDR(c.Spec.ClusterCIDR)
+        if err != nil {
+            allErrs = append(allErrs, field.Invalid(sPath.Child("clusterCIDR"), c.Spec.ClusterCIDR, fmt.Sprintf("parse CIDR error:%s", err)))
+        }
+    }
 
-	// kubeadm need the 10th ip!
-	if *c.Spec.Properties.MaxClusterServiceNum < 10 {
-		allErrs = append(allErrs, field.Invalid(sPath.Child("Properties.MaxClusterServiceNum"), *c.Spec.Properties.MaxClusterServiceNum, "must not less than 10"))
-	}
+    // kubeadm need the 10th ip!
+    if *c.Spec.Properties.MaxClusterServiceNum < 10 {
+        allErrs = append(allErrs, field.Invalid(sPath.Child("Properties.MaxClusterServiceNum"), *c.Spec.Properties.MaxClusterServiceNum, "must not less than 10"))
+    }
 
-	// validate machines
-	if c.Spec.Machines == nil {
-		allErrs = append(allErrs, field.Required(sPath.Child("machines"), ""))
-	} else {
-		var ips []string
-		for i, machine := range c.Spec.Machines {
-			idxPath := sPath.Child("machine").Index(i)
-			if machine.IP == "" {
-				allErrs = append(allErrs, field.Required(idxPath, ""))
-			} else {
-				if funk.Contains(ips, machine.IP) {
-					allErrs = append(allErrs, field.Duplicate(idxPath, machine.IP))
-				} else {
-					ips = append(ips, machine.IP)
+    // validate machines
+    if c.Spec.Machines == nil {
+        allErrs = append(allErrs, field.Required(sPath.Child("machines"), ""))
+    } else {
+        var ips []string
+        for i, machine := range c.Spec.Machines {
+            idxPath := sPath.Child("machine").Index(i)
+            if machine.IP == "" {
+                allErrs = append(allErrs, field.Required(idxPath, ""))
+            } else {
+                if funk.Contains(ips, machine.IP) {
+                    allErrs = append(allErrs, field.Duplicate(idxPath, machine.IP))
+                } else {
+                    ips = append(ips, machine.IP)
 
-					if machine.Password == nil && machine.PrivateKey == nil {
-						allErrs = append(allErrs, field.Required(idxPath.Child("password"), "password or privateKey at least one"))
-					}
-					sshConfig := &ssh.Config{
-						User:        machine.Username,
-						Host:        machine.IP,
-						Port:        int(machine.Port),
-						Password:    string(machine.Password),
-						PrivateKey:  machine.PrivateKey,
-						PassPhrase:  machine.PassPhrase,
-						DialTimeOut: time.Second,
-						Retry:       0,
-					}
-					s, err := ssh.New(sshConfig)
-					if err != nil {
-						allErrs = append(allErrs, field.Forbidden(idxPath, err.Error()))
-					} else {
-						err = s.Ping()
-						if err != nil {
-							allErrs = append(allErrs, field.Forbidden(idxPath, err.Error()))
-						}
-					}
-				}
-			}
-		}
-	}
+                    if machine.Password == nil && machine.PrivateKey == nil {
+                        allErrs = append(allErrs, field.Required(idxPath.Child("password"), "password or privateKey at least one"))
+                    }
+                    sshConfig := &ssh.Config{
+                        User:        machine.Username,
+                        Host:        machine.IP,
+                        Port:        int(machine.Port),
+                        Password:    string(machine.Password),
+                        PrivateKey:  machine.PrivateKey,
+                        PassPhrase:  machine.PassPhrase,
+                        DialTimeOut: time.Second,
+                        Retry:       0,
+                    }
+                    s, err := ssh.New(sshConfig)
+                    if err != nil {
+                        allErrs = append(allErrs, field.Forbidden(idxPath, err.Error()))
+                    } else {
+                        err = s.Ping()
+                        if err != nil {
+                            allErrs = append(allErrs, field.Forbidden(idxPath, err.Error()))
+                        }
+                    }
+                }
+            }
+        }
+    }
 
-	return allErrs, nil
+    return allErrs, nil
 }
 ```
 遍历c.Spec.Machines，并逐个进行ping测试
@@ -700,32 +700,32 @@ func (e *Store) Update(ctx context.Context, name string, objInfo rest.UpdatedObj
 
 // ValidateUpdate is the default update validation for an end cluster.
 func (s *Strategy) ValidateUpdate(ctx context.Context, obj, old runtime.Object) field.ErrorList {
-	return ValidateClusterUpdate(s.clusterProviders, obj.(*platform.Cluster), old.(*platform.Cluster), s.platformClient)
+    return ValidateClusterUpdate(s.clusterProviders, obj.(*platform.Cluster), old.(*platform.Cluster), s.platformClient)
 }
 
 // ValidateClusterUpdate tests if required fields in the cluster are set during
 // an update.
 func ValidateClusterUpdate(clusterProviders *sync.Map, cluster *platform.Cluster, old *platform.Cluster, platformClient platforminternalclient.PlatformInterface) field.ErrorList {
-	allErrs := apiMachineryValidation.ValidateObjectMetaUpdate(&cluster.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
+    allErrs := apiMachineryValidation.ValidateObjectMetaUpdate(&cluster.ObjectMeta, &old.ObjectMeta, field.NewPath("metadata"))
     // 调用了ValidateCluster
-	allErrs = append(allErrs, ValidateCluster(clusterProviders, cluster, platformClient, false)...)
+    allErrs = append(allErrs, ValidateCluster(clusterProviders, cluster, platformClient, false)...)
 
-	if cluster.Spec.Type != "" {
-		if cluster.Spec.Type != platform.ClusterImported {
-			clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(cluster.Spec.Type))
-			if err != nil {
-				allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
-			}
+    if cluster.Spec.Type != "" {
+        if cluster.Spec.Type != platform.ClusterImported {
+            clusterProvider, err := provider.LoadClusterProvider(clusterProviders, string(cluster.Spec.Type))
+            if err != nil {
+                allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+            }
 
-			resp, err := clusterProvider.ValidateUpdate(*cluster, *old)
-			if err != nil {
-				allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "annotations"), err))
-			}
-			allErrs = append(allErrs, resp...)
-		}
-	}
+            resp, err := clusterProvider.ValidateUpdate(*cluster, *old)
+            if err != nil {
+                allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "annotations"), err))
+            }
+            allErrs = append(allErrs, resp...)
+        }
+    }
 
-	return allErrs
+    return allErrs
 }     
 ```
 
@@ -733,8 +733,8 @@ func ValidateClusterUpdate(clusterProviders *sync.Map, cluster *platform.Cluster
 ```
 // ValidateUpdate只是返回了错误，并没有其它操作
 func (p *Provider) ValidateUpdate(cluster platform.Cluster, oldCluster platform.Cluster) (field.ErrorList, error) {
-	var allErrs field.ErrorList
-	return allErrs, nil
+    var allErrs field.ErrorList
+    return allErrs, nil
 }
 ```
 
@@ -760,115 +760,115 @@ func (e *Store) Create(ctx context.Context, obj runtime.Object, createValidation
 ```
 // Validate tests if required fields in the machine are set.
 func Validate(machineProviders *sync.Map, obj *platform.Machine, platformClient platforminternalclient.PlatformInterface) field.ErrorList {
-	var err error
-	allErrs := apiMachineryvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, apiMachineryvalidation.NameIsDNSLabel, field.NewPath("metadata"))
+    var err error
+    allErrs := apiMachineryvalidation.ValidateObjectMeta(&obj.ObjectMeta, false, apiMachineryvalidation.NameIsDNSLabel, field.NewPath("metadata"))
 
     //跟创建集群一样有ValidateLicenseLimit校验
-	allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
-	// validate Type
-	if obj.Spec.Type == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), "must specify machine type"))
-	} else {
-		if !funk.Contains(types, obj.Spec.Type) {
-			allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
-		}
-		p, err := provider.LoadMachineProvider(machineProviders, string(obj.Spec.Type))
-		if err != nil {
-			allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
-		} else {
+    allErrs = append(allErrs, validation.ValidateLicenseLimit(platformClient)...)
+    // validate Type
+    if obj.Spec.Type == "" {
+        allErrs = append(allErrs, field.Required(field.NewPath("spec", "type"), "must specify machine type"))
+    } else {
+        if !funk.Contains(types, obj.Spec.Type) {
+            allErrs = append(allErrs, field.Invalid(field.NewPath("spec", "type"), obj.Spec.Type, fmt.Sprintf("availble type are %v", types)))
+        }
+        p, err := provider.LoadMachineProvider(machineProviders, string(obj.Spec.Type))
+        if err != nil {
+            allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+        } else {
             //这里调用了machine provider的Validate
-			resp, err := p.Validate(*obj)
-			if err != nil {
-				allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
-			}
-			allErrs = append(allErrs, resp...)
-		}
-	}
+            resp, err := p.Validate(*obj)
+            if err != nil {
+                allErrs = append(allErrs, field.InternalError(field.NewPath("spec"), err))
+            }
+            allErrs = append(allErrs, resp...)
+        }
+    }
 
-	// validate ClusterName
-	var machineList *platform.MachineList
-	var cluster *platform.Cluster
+    // validate ClusterName
+    var machineList *platform.MachineList
+    var cluster *platform.Cluster
     //校验集群是否存在
-	clusterErrs := validation.ValidateCluster(platformClient, obj.Spec.ClusterName)
-	if clusterErrs != nil {
-		allErrs = append(allErrs, clusterErrs...)
-	} else {
-		cluster, err = platformClient.Clusters().Get(obj.Spec.ClusterName, metav1.GetOptions{})
-		if err != nil {
-			allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
-				fmt.Errorf("can't get cluster:%s", err)))
-		} else {
+    clusterErrs := validation.ValidateCluster(platformClient, obj.Spec.ClusterName)
+    if clusterErrs != nil {
+        allErrs = append(allErrs, clusterErrs...)
+    } else {
+        cluster, err = platformClient.Clusters().Get(obj.Spec.ClusterName, metav1.GetOptions{})
+        if err != nil {
+            allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
+                fmt.Errorf("can't get cluster:%s", err)))
+        } else {
             //计算最大节点数
-			_, cidr, _ := net.ParseCIDR(cluster.Spec.ClusterCIDR)
-			ones, _ := cidr.Mask.Size()
-			maxNode := math.Exp2(float64(cluster.Status.NodeCIDRMaskSize - int32(ones)))
+            _, cidr, _ := net.ParseCIDR(cluster.Spec.ClusterCIDR)
+            ones, _ := cidr.Mask.Size()
+            maxNode := math.Exp2(float64(cluster.Status.NodeCIDRMaskSize - int32(ones)))
 
-			fieldSelector := fmt.Sprintf("spec.clusterName=%s", obj.Spec.ClusterName)
+            fieldSelector := fmt.Sprintf("spec.clusterName=%s", obj.Spec.ClusterName)
             //获取machine列表
-			machineList, err = platformClient.Machines().List(metav1.ListOptions{FieldSelector: fieldSelector})
-			if err != nil {
-				allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
-					fmt.Errorf("list machines of the cluster error:%s", err)))
-			} else {
+            machineList, err = platformClient.Machines().List(metav1.ListOptions{FieldSelector: fieldSelector})
+            if err != nil {
+                allErrs = append(allErrs, field.InternalError(field.NewPath("spec", "clusterName"),
+                    fmt.Errorf("list machines of the cluster error:%s", err)))
+            } else {
                 //对比machine总数和最大节点数
-				machineSize := len(machineList.Items)
-				if machineSize >= int(maxNode) {
-					allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"),
-						fmt.Sprintf("the cluster's machine upper limit(%d) has been reached", int(maxNode))))
-				}
-			}
-		}
-	}
+                machineSize := len(machineList.Items)
+                if machineSize >= int(maxNode) {
+                    allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"),
+                        fmt.Sprintf("the cluster's machine upper limit(%d) has been reached", int(maxNode))))
+                }
+            }
+        }
+    }
 
-	// validate IP
-	if obj.Spec.IP == "" {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify IP"))
-	} else {
-		if machineList != nil {
-			for _, machine := range machineList.Items {
-				if machine.Spec.IP == obj.Spec.IP {
-					allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
-				}
-			}
-		}
-		if cluster != nil {
-			for _, machine := range cluster.Spec.Machines {
-				if machine.IP == obj.Spec.IP {
-					allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
-				}
-			}
-		}
-	}
-	if obj.Spec.Port == 0 {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify Port"))
-	}
+    // validate IP
+    if obj.Spec.IP == "" {
+        allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify IP"))
+    } else {
+        if machineList != nil {
+            for _, machine := range machineList.Items {
+                if machine.Spec.IP == obj.Spec.IP {
+                    allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
+                }
+            }
+        }
+        if cluster != nil {
+            for _, machine := range cluster.Spec.Machines {
+                if machine.IP == obj.Spec.IP {
+                    allErrs = append(allErrs, field.Duplicate(field.NewPath("spec", "IP"), obj.Spec.IP))
+                }
+            }
+        }
+    }
+    if obj.Spec.Port == 0 {
+        allErrs = append(allErrs, field.Required(field.NewPath("spec", "IP"), "must specify Port"))
+    }
 
-	// validate ssh
-	if obj.Spec.Password == nil && obj.Spec.PrivateKey == nil {
-		allErrs = append(allErrs, field.Required(field.NewPath("spec", "password"), "password or privateKey at least one"))
-	}
+    // validate ssh
+    if obj.Spec.Password == nil && obj.Spec.PrivateKey == nil {
+        allErrs = append(allErrs, field.Required(field.NewPath("spec", "password"), "password or privateKey at least one"))
+    }
     //ssh登录校验
-	sshConfig := &ssh.Config{
-		User:        obj.Spec.Username,
-		Host:        obj.Spec.IP,
-		Port:        int(obj.Spec.Port),
-		Password:    string(obj.Spec.Password),
-		PrivateKey:  obj.Spec.PrivateKey,
-		PassPhrase:  obj.Spec.PassPhrase,
-		DialTimeOut: time.Second,
-		Retry:       0,
-	}
-	s, err := ssh.New(sshConfig)
-	if err != nil {
-		allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
-	} else {
-		err = s.Ping()
-		if err != nil {
-			allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
-		}
-	}
+    sshConfig := &ssh.Config{
+        User:        obj.Spec.Username,
+        Host:        obj.Spec.IP,
+        Port:        int(obj.Spec.Port),
+        Password:    string(obj.Spec.Password),
+        PrivateKey:  obj.Spec.PrivateKey,
+        PassPhrase:  obj.Spec.PassPhrase,
+        DialTimeOut: time.Second,
+        Retry:       0,
+    }
+    s, err := ssh.New(sshConfig)
+    if err != nil {
+        allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
+    } else {
+        err = s.Ping()
+        if err != nil {
+            allErrs = append(allErrs, field.Forbidden(field.NewPath("spec"), err.Error()))
+        }
+    }
 
-	return allErrs
+    return allErrs
 }
 ```
                                    
