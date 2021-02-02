@@ -770,16 +770,16 @@ func (c *Controller) Sync(key string) error {
 所有pod的处理逻辑最终都在syncTApp函数里
 ```
 func (c *Controller) syncTApp(tapp *tappv1.TApp, pods []*corev1.Pod) {
-	klog.V(4).Infof("Syncing tapp %s with %d pods", util.GetTAppFullName(tapp), len(pods))
-	//1. a. 设置template的templateHash和uniqHash，包括TemplatePool；
-	//   b. template hash: 对spec.template进行hash；
-	//   c. uniq hash: 对container和initContainer但不包括image内容进行hash；
-	//2. 返回一个key为pod索引序号，值为pod对象的podMap map数据结构；
-	//3. a. tapp.Spec.Statuses存放的是pod索引和Instance状态的map，这里instance~=pod的概念；
-	//   b. 遍历tapp.Spec.Statuses计算出正在运行的pod放入running sets和Instance处于killed状态的pod放入completed sets；
-	//   c. 如果启用deletePodAfterAppFinish，遍历tapp.Status.Statuses把Instance处于Failed/Succ状态的pod放入completed sets；
-	//4. a. 同步Running的pod，通过遍历第三步的running sets，再和第二步的podMap对比；
-	//      返回podActions map a1，podActions存放的pod索引id和pod的下一步执行动作(CREATE/UPDATE/RECREATE/DELETE)；
+    klog.V(4).Infof("Syncing tapp %s with %d pods", util.GetTAppFullName(tapp), len(pods))
+    //1. a. 设置template的templateHash和uniqHash，包括TemplatePool；
+    //   b. template hash: 对spec.template进行hash；
+    //   c. uniq hash: 对container和initContainer但不包括image内容进行hash；
+    //2. 返回一个key为pod索引序号，值为pod对象的podMap map数据结构；
+    //3. a. tapp.Spec.Statuses存放的是pod索引和Instance状态的map，这里instance~=pod的概念；
+    //   b. 遍历tapp.Spec.Statuses计算出正在运行的pod放入running sets和Instance处于killed状态的pod放入completed sets；
+    //   c. 如果启用deletePodAfterAppFinish，遍历tapp.Status.Statuses把Instance处于Failed/Succ状态的pod放入completed sets；
+    //4. a. 同步Running的pod，通过遍历第三步的running sets，再和第二步的podMap对比；
+    //      返回podActions map a1，podActions存放的pod索引id和pod的下一步执行动作(CREATE/UPDATE/RECREATE/DELETE)；
     //   b. 同步Completed的pod，通过遍历第三步的completed sets，再和第二步的podMap对比；如果存在于podMap，即把podAction置为DELETE；
     //      返回podActions map a2；
     //   c. 同步不合法的pod，通过遍历🥈第二步的podMap，如果pod索引id>=tapp.Spec.Replicas, 即把podAction置为DELETE；
@@ -807,14 +807,14 @@ func (c *Controller) syncTApp(tapp *tappv1.TApp, pods []*corev1.Pod) {
     //   l. 如果匹配到"UPDATE"的podAction，新建Instance对象，然后放入update []*Instance, 并从availablePods删除该pod；
     //   m. 如果匹配到"RECREATE"的PodAction，则使用现在的pod构建Instance对象，然后放入del []*Instance，并从availablePods删除该pod；
     //   x. 返回add/del/forceDel/update的[]*Instance;
-	add, del, forceDel, update := c.instanceToSync(tapp, pods)
-	//6. 同步pod的Conditions
-	c.syncPodConditions(pods, append(del, update...))
-	//7. a. 遍历add []*Instance，并发启动goroutine创建PersistentVolumeClaims/pod
-	//   b. 遍历del []*Instance，并发启动goroutine删除pod
-	//   c. 遍历forceDel []*Instance，并发启动goroutine强制删除pod
-	//   d. 遍历update []*Instance，更新pod
-	c.syncer.SyncInstances(add, del, forceDel, update)
+    add, del, forceDel, update := c.instanceToSync(tapp, pods)
+    //6. 同步pod的Conditions
+    c.syncPodConditions(pods, append(del, update...))
+    //7. a. 遍历add []*Instance，并发启动goroutine创建PersistentVolumeClaims/pod
+    //   b. 遍历del []*Instance，并发启动goroutine删除pod
+    //   c. 遍历forceDel []*Instance，并发启动goroutine强制删除pod
+    //   d. 遍历update []*Instance，更新pod
+    c.syncer.SyncInstances(add, del, forceDel, update)
 }
 ```
 

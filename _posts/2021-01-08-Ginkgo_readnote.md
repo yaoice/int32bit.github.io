@@ -134,10 +134,10 @@ var _ = ...技巧使我们可以在最高级别评估Describe，方便作为被�
 package books_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+    . "github.com/onsi/ginkgo"
+    . "github.com/onsi/gomega"
 
-	.  "books"
+    .  "books"
 )
 
 var _ = Describe("Book", func() {
