@@ -818,18 +818,536 @@ ffff
 
 ### 1.8 tc
 
-## 内存
+## 2 内存
 
 系统ps aux的RSS内存总和很小，free查看已耗尽内存了，消耗花在内核上？通过`slabtop`可以看到内核内存消耗情况
 ```
 slabtop
 ```
 
+### 2.1 常用内存状态监控命令
+
+虚拟机内存地址 vs 物理内存地址
+
+
+#### Buddy系统
+
+
+#### slab
+
+
+## 3 cpu性能
+
+### 3.1 常用cpu状态监控命令
+
+#### 3.1.1 top
+
+```
+top - 19:11:29 up 2 days,  4:24,  6 users,  load average: 1.98, 1.88, 2.18
+Tasks: 620 total,   2 running, 618 sleeping,   0 stopped,   0 zombie
+%Cpu0  :  5.4 us,  3.4 sy,  0.0 ni, 86.6 id,  4.4 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu1  :  7.1 us,  6.8 sy,  0.0 ni, 84.4 id,  1.4 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu2  :  7.1 us, 10.5 sy,  0.0 ni, 80.7 id,  1.4 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu3  :  7.1 us, 10.4 sy,  0.0 ni, 80.8 id,  1.0 wa,  0.0 hi,  0.7 si,  0.0 st
+%Cpu4  :  4.4 us,  4.1 sy,  0.0 ni, 91.2 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu5  :  3.3 us,  3.0 sy,  0.0 ni, 93.0 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu6  :  6.4 us,  4.4 sy,  0.0 ni, 88.6 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu7  :  3.4 us,  4.4 sy,  0.0 ni, 91.9 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu8  :  5.1 us,  4.7 sy,  0.0 ni, 89.2 id,  0.3 wa,  0.0 hi,  0.7 si,  0.0 st
+%Cpu9  :  6.7 us,  2.7 sy,  0.0 ni, 90.3 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu10 :  4.0 us,  3.0 sy,  0.0 ni, 92.6 id,  0.3 wa,  0.0 hi,  0.0 si,  0.0 st
+%Cpu11 :  5.4 us,  4.0 sy,  0.0 ni, 90.3 id,  0.0 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu12 :  8.1 us,  6.4 sy,  0.0 ni, 84.9 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu13 :  7.4 us,  3.7 sy,  0.0 ni, 88.2 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu14 :  4.7 us,  3.4 sy,  0.0 ni, 91.3 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+%Cpu15 :  8.4 us,  8.4 sy,  0.0 ni, 82.6 id,  0.3 wa,  0.0 hi,  0.3 si,  0.0 st
+KiB Mem : 65713160 total,  9549144 free, 13793352 used, 42370664 buff/cache
+KiB Swap:        0 total,        0 free,        0 used. 50337096 avail Mem 
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                
+10726 root      20   0  304928  47148  18592 S  21.6  0.1 635:17.50 grunt                  
+25750 root      20   0  304832  52676  18588 R  21.6  0.1 621:35.81 grunt                  
+21521 root      20   0 2745488 200540  37888 S  11.6  0.3 424:19.46 kubelet     
+```
+通过`man top`可以查看具体字段表示含义
+
+#### 3.1.2 mpstat
+
+每隔1秒采集cpu1的使用统计
+```
+# mpstat -P 1 1
+Linux 3.10.0-862.11.6.el7.x86_64 (VM-67-5-centos)       02/04/21        _x86_64_        (16 CPU)
+19:22:20     CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+19:22:21       1    6.12    0.00    4.08    2.04    0.00    0.00    0.00    0.00    0.00   87.76
+19:22:22       1    4.12    0.00    3.09    1.03    0.00    0.00    0.00    0.00    0.00   91.75
+19:22:23       1    7.07    0.00    4.04    2.02    0.00    1.01    0.00    0.00    0.00   85.86
+19:22:24       1    8.08    0.00    6.06    3.03    0.00    1.01    0.00    0.00    0.00   81.82
+```
+- irq：硬中断，中断处理的上半部
+- soft：中断处理的下半部，软中断是其实现的一种方式
+
+#### 3.1.3 sar
+
+每隔1秒采集cpu1的使用统计
+```
+# sar -P 1 1
+Linux 3.10.0-862.11.6.el7.x86_64 (VM-67-5-centos)       02/04/21        _x86_64_        (16 CPU)
+19:20:01        CPU     %user     %nice   %system   %iowait    %steal     %idle
+19:20:02          1      6.12      0.00      4.08      7.14      0.00     82.65
+19:20:03          1      6.12      0.00      5.10      6.12      0.00     82.65
+19:20:04          1      8.16      0.00      4.08      1.02      0.00     86.73
+19:20:05          1     11.11      0.00      5.05      2.02      0.00     81.82
+```
+
+#### 3.1.4 perf
+
+采集指令缓存里面的指令比率样本，可以看到cpu消耗在哪方面比较多；在做进程级别的性能优化可能会用到这个
+```
+# perf top
+Samples: 19K of event 'cpu-clock', Event count (approx.): 4101070129                        
+ 10.40%  [kernel]                      [k] __do_softirq
+  9.19%  [kernel]                      [k] _raw_spin_unlock_irqrestore
+  6.50%  kubelet                       [.] 0x00000000000e8fa3
+  5.07%  [kernel]                      [k] finish_task_switch
+  3.96%  [kernel]                      [k] run_timer_softirq
+  2.57%  ld-musl-x86_64.so.1           [.] 0x00000000000525ed
+  2.29%  kube-apiserver                [.] 0x000000000003603b
+  2.16%  kube-controller-manager       [.] 0x0000000000037544
+```
+
+#### 3.1.5 pidstat
+
+每隔1秒采集进程11957的cpu使用统计
+```
+# pidstat -p 11957 1
+Linux 3.10.0-862.11.6.el7.x86_64 (VM-67-5-centos)       02/04/21        _x86_64_        (16 CPU)
+19:36:46      UID       PID    %usr %system  %guest    %CPU   CPU  Command
+19:36:47        0     11957    1.00    1.00    0.00    2.00     9  etcd
+19:36:48        0     11957    6.00    1.00    0.00    7.00     9  etcd
+19:36:49        0     11957    9.00    1.00    0.00   10.00    11  etcd
+19:36:50        0     11957    1.00    1.00    0.00    2.00     0  etcd
+```
+
+#### 3.1.6 uptime
+
+```
+# uptime 
+17:14:57 up 2 days,  2:27,  8 users,  load average: 2.44, 2.34, 2.10
+```
+2.44, 2.34, 2.19分别对应1分钟、5分钟、15分钟当前执行队列中等待cpu的R状态进程有多少个, 值越高，说明系统繁忙
+
+#### 3.1.7 /proc/cpuinfo
+
+```
+# cat /proc/cpuinfo  
+processor       : 0
+vendor_id       : GenuineIntel
+cpu family      : 6
+model           : 94
+model name      : Intel(R) Xeon(R) Gold 6133 CPU @ 2.50GHz
+stepping        : 3
+microcode       : 0x1
+cpu MHz         : 2494.130
+cache size      : 28160 KB
+physical id     : 0
+siblings        : 16
+core id         : 0
+cpu cores       : 16
+apicid          : 0
+initial apicid  : 0
+fpu             : yes
+fpu_exception   : yes
+cpuid level     : 13
+wp              : yes
+flags           : fpu vme de pse tsc msr pae mce cx8 apic sep mtrr pge mca cmov pat pse36 clflush mmx fxsr sse sse2 ss ht syscall nx pdpe1gb rdtscp lm constant_tsc rep_good nopl eagerfpu pni pclmulqdq ssse3 fma cx16 pcid sse4_1 sse4_2 x2apic movbe popcnt tsc_deadline_timer aes xsave avx f16c rdrand hypervisor lahf_lm abm 3dnowprefetch fsgsbase bmi1 hle avx2 smep bmi2 erms invpcid rtm mpx rdseed adx smap xsaveopt xsavec xgetbv1 arat
+bogomips        : 4988.26
+clflush size    : 64
+cache_alignment : 64
+address sizes   : 46 bits physical, 48 bits virtual
+power management:
+```
+cpu运算能力指标：
+- cpu MHz: 主频率2494.130
+- bogomips: 4988.26，测量预估当前cpu每秒可以跑多少百万个cpu指令(预估的是整型运算)
+
+### 3.2 NUMA
+
+>NUMA （ Non-Uniform Memory Access），非均匀访问存储模型，
+>这种模型的是为了解决smp扩容性很差而提出的技术方案，如果说smp相当于多个cpu连接一个内存池导致请求经常发生冲突的话，
+>numa就是将cpu的资源分开，以node为单位进行切割，每个node里有着独有的core，memory等资源，
+>这也就导致了cpu在性能使用上的提升，但是同样存在问题就是2个node之间的资源交互非常慢，
+>当cpu增多的情况下，性能提升的幅度并不是很高。所以可以看到很多明明有很多core的服务器却只有2个node区。
+
+numa状态查看
+```
+# numactl -H
+available: 2 nodes (0-1)
+# node0的cpu核心是哪些
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 24 25 26 27 28 29 30 31 32 33 34 35
+node 0 size: 64089 MB
+node 0 free: 12875 MB
+# node1的cpu核心是哪些
+node 1 cpus: 12 13 14 15 16 17 18 19 20 21 22 23 36 37 38 39 40 41 42 43 44 45 46 47
+node 1 size: 32225 MB
+node 1 free: 3696 MB
+node distances:
+node   0   1 
+  0:  10  21 
+  1:  21  10 
+```
+这个矩阵怎么看呢？node0访问node0是10，node0访问node1是21，意味着跨node访问速度只有node本地访问速度的一半
+
+显示numa node间的访问次数
+```
+# numastat 
+                           node0           node1
+#节点内的访问次数
+numa_hit             57633266847     52827434391
+#节点没访问到的次数
+numa_miss             5005867871          388568
+#跨节点的访问次数
+numa_foreign              388568      5005867871
+interleave_hit             38143           37553
+local_node           57656666307     52823299884
+other_node            4982468411         4523075
+```
+理论上，如果foreign越高，说明跨node访问比较多，有可能是应用程序就是这样设计的
+
+### 3.3 中断
+
+>中断本质就是cpu的异步机制，中断是一种使CPU中止正在执行的程序而转去处理特殊事件的操作，
+>这些引起中断的事件称为中断源，它们可能是来自外设的输入输出请求，也可能是计算机的一些异常事故或其它内部原因。
+>比如键盘/鼠标操作，就是中断事件；中断发送给中断控制器(现在都是可编程中断控制器)，中断控制器产生一个事件告诉cpu，
+>现在做什么都先停下，先处理这个事件. 网卡发送/接收包会产生大量的中断，每一个包都是一个中断事件.
+
+当前系统支持的中断
+```
+cat /proc/interrupts 
+```
+
+```
+root@xiabingyao-LC0:~# mpstat -P 1
+Linux 5.4.0-58-generic (xiabingyao-LC0)         2021年02月07日  _x86_64_        (48 CPU)
+
+14时19分56秒  CPU    %usr   %nice    %sys %iowait    %irq   %soft  %steal  %guest  %gnice   %idle
+14时19分56秒    1    3.25    0.00    1.61    0.09    0.00    0.56    0.00    0.16    0.00   94.33
+```
+中断分为中断上半部(硬件中断)和中断下半部(中断下半部有多种，软中断是其中一种)；中断是一种比较昂贵的资源，不一定要全部走完内核协议栈所有过程，
+要尽量缩短中断处理的时间；如网卡收到一个包，内核保证所有的硬中断(irq)先处理，当没有更多的硬中断事件的时候，内核有余力的情况下就去处理软中断(如解包、把包发给应用程序等)；
+网卡处理能力出现瓶颈的时候，往往是irq不高，soft高.
+
+#### 3.3.1 timer中断
+
+一个cpu如何实现进程并发执行？基于时间片的cpu调度，时间片切分基于timer中断来设计，每隔一个时间片的时间发一个中断，让cpu停止下来去处理其它的
+
+```
+# vmstat 1
+procs -----------memory---------- ---swap-- -----io---- -system-- ------cpu-----
+ r  b 交换 空闲 缓冲 缓存   si   so    bi    bo   in   cs us sy id wa st
+ 1  0      0 16585568 1992240 21967532    0    0     0    53    0    0  4  2 94  0  0
+ 1  0      0 16581756 1992240 21967592    0    0     0  1540 8769 16732  3  1 96  0  0
+ 1  0      0 16582336 1992240 21967728    0    0     0    40 6992 14211  3  1 97  0  0
+ 1  0      0 16582848 1992240 21967732    0    0     0     0 5598 11326  3  0 97  0  0
+ 1  0      0 16585544 1992240 21968000    0    0     0   168 8168 16166  3  0 96  0  0
+ 1  0      0 16584456 1992240 21967748    0    0     0     0 7030 14329  3  1 96  0  0
+ 3  0      0 16584452 1992240 21967756    0    0     0    96 6190 13049  3  0 97  0  0
+ 2  0      0 16582648 1992240 21967764    0    0     0     4 5295 10501  3  0 97  0  0
+ 2  0      0 16572040 1992240 21968028    0    0     0    96 7127 14023  5  1 94  0  0
+ 2  0      0 16560732 1992240 21967776    0    0     0    28 7608 14079  5  0 95  0  0
+```
+- in即interupt，每秒钟中断的次数
+- cs即context switch，每秒钟上下文切换的次数
+
+查看当前的时钟中断频率是多少
+```
+# cat /boot/config-5.8.0-41-generic |grep CONFIG_HZ
+# CONFIG_HZ_PERIODIC is not set
+# CONFIG_HZ_100 is not set
+CONFIG_HZ_250=y
+# CONFIG_HZ_300 is not set
+# CONFIG_HZ_1000 is not set
+CONFIG_HZ=250
+```
+这里时钟中断频率是每秒250次，还有300，1000的值，配置为250可能是为了吞吐量
+
+系统性能调整的实质：系统性能上限取决于硬件的性能，性能调整就像一个天平的两端，一端是吞吐量，另一端是响应速度.
+
+
+#### 3.4 调度器
+
+#### 3.4.1 O(n)调度器
+
+2.4版本的Linux内核使用的调度算法非常简单和直接，由于每次在寻找下一个任务时需要遍历系统中所有的任务（链表）
+
+#### 3.4.2 O(1)调度器
+
+在2.6版本的内核中加入了全新的调度算法，它能够在常数时间内调度任务
+
+从系统层面来看应用程序，应用程序分为IO消耗类型和CPU消耗类型，可以用`nice`和`renice`来调整进程的静态优先级，
+内核维护了一个进程动态优先级的值，`top`这边看到的PR字段，
+```
+top - 17:25:45 up  2:01,  4 users,  load average: 1.92, 2.48, 2.60
+Tasks: 629 total,   1 running, 628 sleeping,   0 stopped,   0 zombie
+%Cpu(s):  7.9 us,  2.8 sy,  0.0 ni, 87.3 id,  0.9 wa,  0.0 hi,  0.9 si,  0.2 st
+KiB Mem : 32779308 total, 19690788 free,  6345328 used,  6743192 buff/cache
+KiB Swap:        0 total,        0 free,        0 used. 25745752 avail Mem 
+
+  PID USER      PR  NI    VIRT    RES    SHR S  %CPU %MEM     TIME+ COMMAND                                    
+32160 1337      20   0  574988 187132  11952 S  74.6  0.6  26:48.93 nginx                                      
+32340 root      20   0  305092  48904  18592 S  27.1  0.1  30:41.41 grunt                                      
+17846 root      20   0  939828 353524   5824 S  22.1  1.1  15:52.85 fluentd         
+```
+
+想获得更高的优先级，可以把一个进程调整为实时进程，系统会优先让实时进程响应速度变快
+```
+root@xiabingyao-LC0:~# chrt  -h
+显示或更改某个进程的实时调度属性。
+
+设置策略：
+ chrt [选项] <优先级> <命令> [<参数>...]
+ chrt [选项] --pid <优先级> <pid>
+
+获取策略
+ chrt [选项] -p <pid>
+
+策略选项：
+ -b, --batch          将策略设置为 SCHED_BATCH
+ -d, --deadline       将策略设置为 SCHED_DEADLINE
+ -f, --fifo           将策略设置为 SCHED_FIFO
+ -i, --idle           将策略设置为 SCHED_IDLE
+ -o, --other          将策略设置为 SCHED_OTHER
+ -r, --rr             将策略设置为 SCHED_RR (默认)
+
+调度选项：
+ -R, --reset-on-fork       为 FIFO 或 RR 设置 SCHED_RESET_ON_FORK
+ -T, --sched-runtime <ns>  DEADLINE 的运行时参数
+ -P, --sched-period <ns>  DEADLINE 的周期参数
+ -D, --sched-deadline <ns> DEADLINE 的截止时间参数
+
+其他选项：
+ -a, --all-tasks      对指定 pid 的所有任务(线程) 操作
+ -m, --max            显示最小和最大有效优先级
+ -p, --pid            对指定且存在的 pid 操作
+ -v, --verbose        显示状态信息
+
+ -h, --help           display this help
+ -V, --version        display version
+```
+
+进程状态
+```
+~# man ps
+PROCESS STATE CODES
+       Here are the different values that the s, stat and state output specifiers (header
+       "STAT" or "S") will display to describe the state of a process:
+
+               D    uninterruptible sleep (usually IO)
+               I    Idle kernel thread
+               R    running or runnable (on run queue)
+               S    interruptible sleep (waiting for an event to complete)
+               T    stopped by job control signal
+               t    stopped by debugger during the tracing
+               W    paging (not valid since the 2.6.xx kernel)
+               X    dead (should never be seen)
+               Z    defunct ("zombie") process, terminated but not reaped by its parent
+
+       For BSD formats and when the stat keyword is used, additional characters may be
+       displayed:
+
+               <    high-priority (not nice to other users)
+               N    low-priority (nice to other users)
+               L    has pages locked into memory (for real-time and custom IO)
+               s    is a session leader
+               l    is multi-threaded (using CLONE_THREAD, like NPTL pthreads do)
+               +    is in the foreground process group
+```
+- D状态进程：不可被打断休眠，通常是在等待IO事件，如果被打断的话，有可能就会出现内存、磁盘数据不一致的现象
+- Z状态进程：僵尸进程，什么是僵尸进程？子进程退出，父进程没回收。僵尸进程是进程退出的正常状态，介于子进程退出之后与父进程回收之前,
+不正常的是父进程没回收子进程；僵尸进程会占用pid，不会占用内存/cpu。
+
+僵尸进程处理方式：找到它的父进程，把父进程杀死，这里面利用到孤儿进程的概念(父进程先于子进程，此时子进程就会被1号进程收养)；
+如果kill父进程也不行的话，只能重启了。
+
+Linux里的进程和线程，从调度器角度来看的话，都是平等的，线程也会被调度执行；在Linux没有线程的说法，线程又称轻量级进程，
+在Linux里进程和线程的区别是：是否共享同一个进程资源。
+
+#### 3.4.3 CFS调度器
+
+CFS的全称是Complete Fair Scheduler，也就是完全公平调度器。从2.6.23开始被作为默认调度器;
+它实现了一个基于权重的公平队列算法，从而将CPU时间分配给多个任务（每个任务的权重和它的nice值有关，nice值越低，权重值越高）。
+每个任务都有一个关联的虚拟运行时间vruntime，它表示一个任务所使用的CPU时间除以其优先级得到的值。
+相同优先级和相同vruntime的两个任务实际运行的时间也是相同的，这就意味着CPU资源是由它们均分了。
+为了保证所有任务能够公平推进，每当需要抢占当前任务时，CFS总会挑选出vruntime最小的那个任务运行。
+
+cfs相关的性能调整参数都在`/proc/sys/kernel/`目录下以sched_开头
+```
+~# cat /proc/sys/kernel/sched_
+sched_autogroup_enabled       sched_min_granularity_ns      sched_tunable_scaling
+sched_cfs_bandwidth_slice_us  sched_nr_migrate              sched_util_clamp_max
+sched_child_runs_first        sched_rr_timeslice_ms         sched_util_clamp_min
+sched_domain/                 sched_rt_period_us            sched_wakeup_granularity_ns
+sched_latency_ns              sched_rt_runtime_us           
+sched_migration_cost_ns       sched_schedstats  
+```
+
+```
+~# cat /proc/sys/kernel/sched_latency_ns 
+24000000
+```
+sched_latency_ns：预期延时事件，这个值就确定了一个新建进程首先会在这个时间段内一定会被调度上，
+每个进程分到的执行时间= sched_latency_ns / N(当前系统R状态进程个数)
+
+```
+~# cat /proc/sys/kernel/sched_min_granularity_ns 
+3000000
+```
+当每个进程分到的执行时间小于sched_min_granularity_ns的时候，每个进程分到的最小执行时间=sched_min_granularity_ns；通过以上两个参数设置，可以
+起到cfs性能调整作用。
+
+cfs本身是一个调度队列，基于红黑树实现；
+
+<img src="/img/posts/2020-12-12/cfs-scheduler.png"/>
+
+红黑树使用一个key值来排序，vruntime是cfs调度器记录每一个进程现在占用cpu运行的时间是多少，用这个cpu时间作为红黑树的key值；
+key值越小排在左子树，key值越大排在右子树，红黑树有自平衡的特点，O(logN)的时间复杂度；cfs调度器如何调度进程？每次都找key值最小的
+那个进程来执行，比如左子树那边2号，优先拿出来执行就会增加2号的vruntime，从整个红黑树来看，最终这些进程运行的vruntime会变成一样大的，
+从而保证了cfs调度是完全公平调度。cpu消耗型进程会一直消耗cpu，所以在红黑树里会一直处于右子树；io消耗型进程会一直释放cpu，vruntime涨得
+比较慢，所以在红黑树里会一直处于左子树；所以就天然形成io消耗型进程优先级更高。有了cfs之后，cgroup限制进程的cpu使用率就变得容易了。
+
+父进程fork出一个子进程，哪个优先执行？ 通过一个参数可以控制
+```
+~# cat /proc/sys/kernel/sched_child_runs_first 
+0
+```
+打开的话即子进程优先执行，关闭的话取决于调度器在平台上的实现(有可能子进程不先执行，也有可能子进程先执行)
+
+`sched_yield`系统调用可以主动让出cpu，有点像python的yield协程实现
+```
+~# man sched_yield
+SCHED_YIELD(2)                  Linux Programmer's Manual                  SCHED_YIELD(2)
+
+NAME
+       sched_yield - yield the processor
+
+SYNOPSIS
+       #include <sched.h>
+
+       int sched_yield(void);
+
+DESCRIPTION
+       sched_yield()  causes  the  calling  thread  to relinquish the CPU.  The thread is
+       moved to the end of the queue for its static priority and a  new  thread  gets  to
+       run.
+
+RETURN VALUE
+       On  success,  sched_yield() returns 0.  On error, -1 is returned, and errno is set
+       appropriately.
+
+ERRORS
+       In the Linux implementation, sched_yield() always succeeds.
+
+CONFORMING TO
+       POSIX.1-2001, POSIX.1-2008.
+```
+
+#### 3.5 cgroup
+
+cgroup cpu绑定例子
+```
+#1. 创建test目录
+~# mkdir /sys/fs/cgroup/cpuset/test
+~# ls /sys/fs/cgroup/cpuset/test/
+cgroup.clone_children  cpuset.effective_cpus  cpuset.memory_migrate      cpuset.mems                      tasks
+cgroup.procs           cpuset.effective_mems  cpuset.memory_pressure     cpuset.sched_load_balance
+cpuset.cpu_exclusive   cpuset.mem_exclusive   cpuset.memory_spread_page  cpuset.sched_relax_domain_level
+cpuset.cpus            cpuset.mem_hardwall    cpuset.memory_spread_slab  notify_on_release
+
+#2. 绑定在第1，2个核上
+~# cat /sys/fs/cgroup/cpuset/test/cpuset.cpus
+
+~# echo "1,2" > !$
+echo "1,2" > /sys/fs/cgroup/cpuset/test/cpuset.cpus
+~# cat !$
+cat /sys/fs/cgroup/cpuset/test/cpuset.cpus
+1-2
+
+#3. 启用cpuset功能
+# mems是一个功能开关，影响的是numa，可以指定在哪个numa节点运行；如果未设置相当于没启用cpuset功能
+root@xiabingyao-LC0:~# cat /sys/fs/cgroup/cpuset/test/cpuset.mems 
+
+~# numactl -H
+available: 2 nodes (0-1)
+node 0 cpus: 0 1 2 3 4 5 6 7 8 9 10 11 24 25 26 27 28 29 30 31 32 33 34 35
+node 0 size: 64089 MB
+node 0 free: 12516 MB
+node 1 cpus: 12 13 14 15 16 17 18 19 20 21 22 23 36 37 38 39 40 41 42 43 44 45 46 47
+node 1 size: 32225 MB
+node 1 free: 3246 MB
+node distances:
+node   0   1 
+  0:  10  21 
+  1:  21  10 
+
+~# echo "0-1" > /sys/fs/cgroup/cpuset/test/cpuset.mems 
+
+~# cat /sys/fs/cgroup/cpuset/test/cpuset.mems 
+0-1
+
+#4. 绑定一个进程或一组进程运行在这个cgroup里
+~# cgexec -g cpuset:test <具体程序命令>
+```
+
+centos系统也提供自动化配置cgroup的方式
+```
+# vim  /etc/cgconfig.conf 
+# By default, we expect systemd mounts everything on boot,
+# so there is not much to do.
+# See man cgconfig.conf for further details, how to create groups
+# on system boot using this file.
+group test {
+   cpuset {
+     cpuset.cpus = "1,2";
+     cpuset.mems = "0-1";
+  }
+}
+```
+```
+# systemctl restart cgconfig
+```
+自动创建test cpuset cgrogup
+
+查看其它cgroup cpu配置参数
+```
+# ls /sys/fs/cgroup/cpu/cpu
+cpu.cfs_period_us         cpu.rt_period_us          cpu.stat                  cpuacct.usage
+cpu.cfs_quota_us          cpu.rt_runtime_us         cpuacct.stat              cpuacct.usage_percpu
+cpu.cfs_relax_thresh_sec  cpu.shares                cpuacct.uptime            
+```
+
+```
+# cat /sys/fs/cgroup/cpu/cpu.cfs_period_us 
+100000
+
+# cat /sys/fs/cgroup/cpu/cpu.cfs_quota_us  
+-1
+```
+- cpu.cfs_quota_us：比如限制一个进程最多占用cpu不超过50%，-1表示没有限制
+- cpu.shares：多个cpu cgroup之间权重比例，比如2：1
+- cpu.cfs_periods_us：这个值是针对单个核心的，如果cfs_period_us=cfs_quota_us，
+quota里的限制可以发挥出100%的cpu性能；如果cfs_period_us=cfs_quota_us*2，quota里的限制只能发挥出单个核心50%的cpu性能；
+如果cfs_period_us=cfs_quota_us / 2 * 总核心数，说明quota里的限制可以发挥出所有核心50%的cpu性能;
+```
+# echo "1200000" >  /sys/fs/cgroup/cpu/test/cpu.cfs_quota_us
+# cgexec -g cpu:test <具体程序命令>
+```
+
 ### 参考链接
 
 - [TCP 重传、滑动窗口、流量控制、拥塞控制](https://www.cnblogs.com/xiaolincoding/p/12732052.html)
 - [万字详文：TCP 拥塞控制详解](https://zhuanlan.zhihu.com/p/144273871)
-- [Iptables之nf_conntrack模块](https://clodfisher.github.io/2018/09/nf_conntrack/)
+- [iptables之nf_conntrack模块](https://clodfisher.github.io/2018/09/nf_conntrack/)
+- [cpu三大架构 numa smp mpp](https://www.jianshu.com/p/81233f3c2c14)
+- [论文学习之 Linux Kernel 调度器](https://www.jianshu.com/p/1281157dfdae)
 
 
 

@@ -3,7 +3,6 @@ layout: post
 title: Ginkgo学习笔记
 subtitle: ""
 catalog: true
-hide: true
 tags:
 - k8s
 
@@ -135,10 +134,10 @@ var _ = ...技巧使我们可以在最高级别评估Describe，方便作为被�
 package books_test
 
 import (
-	. "github.com/onsi/ginkgo"
-	. "github.com/onsi/gomega"
+    . "github.com/onsi/ginkgo"
+    . "github.com/onsi/gomega"
 
-	.  "books"
+    .  "books"
 )
 
 var _ = Describe("Book", func() {
@@ -509,7 +508,7 @@ var _ = AfterSuite(func() {
 4. 只能在测试套件中定义一次`BeforeSuite`和`AfterSuite`
 5. 并行运行时，每个并行进程都将运行`BeforeSuite`和`AfterSuite`函数
 
-#### 4.7 By🕔文档化It
+#### 4.7 By文档化It
 
 在集成式测试中测试复杂的工作流时。在这些情况下，查看代码难以看出具体问题所在，这些情况下，Ginkgo通过`By`来提供帮助
 ```
