@@ -3,7 +3,6 @@ layout: post
 title: linux系统调优
 subtitle: ""
 catalog: true
-hide: true
 tags:
      - linux
 ---
@@ -825,8 +824,6 @@ ffff
 ```
 slabtop
 ```
-
-
 
 ### 参考链接
 
