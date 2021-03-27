@@ -3,7 +3,6 @@ layout: post
 title: 常用数据结构与算法
 subtitle: ""
 catalog: true
-hide: true
 tags:
      - Go
 ---
@@ -1081,58 +1080,58 @@ tmp[2]可表示64~95
 package bitmap
 
 import (
-	"bytes"
-	"fmt"
+    "bytes"
+    "fmt"
 )
 
 type Bitmap struct {
-	words  []uint64
-	length uint64
+    words  []uint64
+    length uint64
 }
 
 func New() *Bitmap {
-	return &Bitmap{}
+    return &Bitmap{}
 }
 func (bitmap *Bitmap) Has(num int) bool {
-	word, bit := num/64, uint(num%64)
-	return word < len(bitmap.words) && (bitmap.words[word]&(1<<bit)) != 0
+    word, bit := num/64, uint(num%64)
+    return word < len(bitmap.words) && (bitmap.words[word]&(1<<bit)) != 0
 }
 
 func (bitmap *Bitmap) Add(num int) {
-	word, bit := num/64, uint(num%64)
-	for word >= len(bitmap.words) {
-		bitmap.words = append(bitmap.words, 0)
-	}
-	// 判断num是否已经存在bitmap中
-	if bitmap.words[word]&(1<<bit) == 0 {
-		bitmap.words[word] |= 1 << bit
-		bitmap.length++
-	}
+    word, bit := num/64, uint(num%64)
+    for word >= len(bitmap.words) {
+        bitmap.words = append(bitmap.words, 0)
+    }
+    // 判断num是否已经存在bitmap中
+    if bitmap.words[word]&(1<<bit) == 0 {
+        bitmap.words[word] |= 1 << bit
+        bitmap.length++
+    }
 }
 
 func (bitmap *Bitmap) Len() int {
-	return bitmap.length
+    return bitmap.length
 }
 
 func (bitmap *Bitmap) String() string {
-	var buf bytes.Buffer
-	buf.WriteByte('{')
-	for i, v := range bitmap.words {
-		if v == 0 {
-			continue
-		}
-		for j := uint(0); j < 64; j++ {
-			if v&(1<<j) != 0 {
-				if buf.Len() > len("{") {
-					buf.WriteByte(' ')
-				}
-				fmt.Fprintf(&buf, "%d", 64*uint(i)+j)
-			}
-		}
-	}
-	buf.WriteByte('}')
-	fmt.Fprintf(&buf,"\nLength: %d", bitmap.length)
-	return buf.String()
+    var buf bytes.Buffer
+    buf.WriteByte('{')
+    for i, v := range bitmap.words {
+        if v == 0 {
+            continue
+        }
+        for j := uint(0); j < 64; j++ {
+            if v&(1<<j) != 0 {
+                if buf.Len() > len("{") {
+                    buf.WriteByte(' ')
+                }
+                fmt.Fprintf(&buf, "%d", 64*uint(i)+j)
+            }
+        }
+    }
+    buf.WriteByte('}')
+    fmt.Fprintf(&buf,"\nLength: %d", bitmap.length)
+    return buf.String()
 }
 ```
 
@@ -1151,15 +1150,15 @@ func (bitmap *Bitmap) String() string {
 4. 持续每次对越来越少的元素重复上面的步骤，直到没有任何一对数字需要比较。
 ```
 func bubbleSort(arr []int) []int {
-	length := len(arr)
-	for i := 0; i < length; i++ {
-		for j := 0; j < length-1-i; j++ {
-			if arr[j] > arr[j+1] {
-				arr[j], arr[j+1] = arr[j+1], arr[j]
-			}
-		}
-	}
-	return arr
+    length := len(arr)
+    for i := 0; i < length; i++ {
+        for j := 0; j < length-1-i; j++ {
+            if arr[j] > arr[j+1] {
+                arr[j], arr[j+1] = arr[j+1], arr[j]
+            }
+        }
+    }
+    return arr
 }
 ```
 
@@ -1203,16 +1202,16 @@ func selectorSort(arr []int) []int {
 
 ```
 func insertSort(arr []int) []int {
-	for i := range arr {
-		preIndex := i - 1
-		current := arr[i]
-		for preIndex >= 0 && arr[preIndex] > current {
-			arr[preIndex+1] = arr[preIndex]
-			preIndex -= 1
-		}
-		arr[preIndex+1] = current
-	}
-	return arr
+    for i := range arr {
+        preIndex := i - 1
+        current := arr[i]
+        for preIndex >= 0 && arr[preIndex] > current {
+            arr[preIndex+1] = arr[preIndex]
+            preIndex -= 1
+        }
+        arr[preIndex+1] = current
+    }
+    return arr
 }
 ```
 
@@ -1282,24 +1281,24 @@ func merge(left []int, right []int) []int {
 package main
 
 type TreeNode struct {
-	left *TreeNode // 左子节点
-	right *TreeNode // 右子节点
-	value int // 值
+    left *TreeNode // 左子节点
+    right *TreeNode // 右子节点
+    value int // 值
 }
 
 func maxDepth(root *TreeNode) int {
-	// 递归终止条件
-	if root == nil {
-		return 0
-	}
-	return max(maxDepth(root.left), maxDepth(root.right)) + 1
+    // 递归终止条件
+    if root == nil {
+        return 0
+    }
+    return max(maxDepth(root.left), maxDepth(root.right)) + 1
 }
 
 func max(a, b int) int {
-	if a > b {
-		return a
-	}
-	return b
+    if a > b {
+        return a
+    }
+    return b
 }
 ```
 
@@ -1311,38 +1310,38 @@ func max(a, b int) int {
 package main
 
 type TreeNode struct {
-	left *TreeNode // 左子节点
-	right *TreeNode // 右子节点
-	value int // 值
+    left *TreeNode // 左子节点
+    right *TreeNode // 右子节点
+    value int // 值
 }
 
 func maxDepth(root *TreeNode) int {
-	// 没有根节点
-	if root == nil {
-		return 0
-	}
-	// 创建队列
-	queue := make([]*TreeNode, 0)
-	// 根节点入队列
-	queue = append(queue, root)
-	depth := 0
-	// 清算队列
-	for len(queue) > 0 {
-		// 把当前层的队列全部遍历一遍全部出队列
-		size := len(queue)
-		for i:=0; i<size; i++ {
-			// 出队列
-			v := queue[0]
-			if v.left != nil {
-				queue = append(queue, v.left)
-			}
-			if v.right != nil {
-				queue = append(queue, v.right)
-			}
-		}
-		depth++
-	}
-	return depth
+    // 没有根节点
+    if root == nil {
+        return 0
+    }
+    // 创建队列
+    queue := make([]*TreeNode, 0)
+    // 根节点入队列
+    queue = append(queue, root)
+    depth := 0
+    // 清算队列
+    for len(queue) > 0 {
+        // 把当前层的队列全部遍历一遍全部出队列
+        size := len(queue)
+        for i:=0; i<size; i++ {
+            // 出队列
+            v := queue[0]
+            if v.left != nil {
+                queue = append(queue, v.left)
+            }
+            if v.right != nil {
+                queue = append(queue, v.right)
+            }
+        }
+        depth++
+    }
+    return depth
 }
 ```
 DFS一般是解决连通性问题, 而BFS一般是解决最短路径问题.
@@ -1363,128 +1362,128 @@ import "fmt"
 */
 
 type LRUCache struct {
-	size, cap int
-	head, tail *LinkNode
-	cache map[int]*LinkNode
+    size, cap int
+    head, tail *LinkNode
+    cache map[int]*LinkNode
 }
 
 type LinkNode struct {
-	key, value int
-	pre, next *LinkNode
+    key, value int
+    pre, next *LinkNode
 }
 
 func (l *LRUCache) Get(key int) int {
-	linkNode, ok := l.cache[key]
-	//不存在，返回-1
-	if !ok {
-		return -1
-	}
-	//存在，移动节点到链表头
-	l.moveToHead(linkNode)
-	return linkNode.value
+    linkNode, ok := l.cache[key]
+    //不存在，返回-1
+    if !ok {
+        return -1
+    }
+    //存在，移动节点到链表头
+    l.moveToHead(linkNode)
+    return linkNode.value
 }
 
 func (l *LRUCache) Put(key, value int) {
-	linkNode, ok := l.cache[key]
-	if !ok {
-		//是新节点
-		newLinkNode := initLinkNode(key, value)
-		l.addToHead(newLinkNode)
-		l.cache[key] = newLinkNode
-		l.size++
+    linkNode, ok := l.cache[key]
+    if !ok {
+        //是新节点
+        newLinkNode := initLinkNode(key, value)
+        l.addToHead(newLinkNode)
+        l.cache[key] = newLinkNode
+        l.size++
 
-		if l.size > l.cap {
-			//超过链表容量，剔除链表尾部节点
-			removedNode := l.tail.pre
-			l.removeNode(removedNode)
-			//从map删除
-			delete(l.cache, removedNode.key)
-			l.size--
-		}
-	} else {
-		//节点已存在
-		if linkNode.value != value {
-			linkNode.value = value
-		}
-		l.moveToHead(linkNode)
-	}
+        if l.size > l.cap {
+            //超过链表容量，剔除链表尾部节点
+            removedNode := l.tail.pre
+            l.removeNode(removedNode)
+            //从map删除
+            delete(l.cache, removedNode.key)
+            l.size--
+        }
+    } else {
+        //节点已存在
+        if linkNode.value != value {
+            linkNode.value = value
+        }
+        l.moveToHead(linkNode)
+    }
 }
 
 func (l *LRUCache) removeNode(linkNode *LinkNode) {
-	linkNode.pre.next = linkNode.next
-	linkNode.next.pre = linkNode.pre
+    linkNode.pre.next = linkNode.next
+    linkNode.next.pre = linkNode.pre
 }
 
 func (l *LRUCache) removeTail(linkNode *LinkNode) {
-	l.removeNode(linkNode)
-	l.tail.next = nil
+    l.removeNode(linkNode)
+    l.tail.next = nil
 }
 
 func (l *LRUCache) addToHead(linkNode *LinkNode) {
-	linkNode.pre = l.head
-	linkNode.next = l.head.next
+    linkNode.pre = l.head
+    linkNode.next = l.head.next
 
-	l.head.next.pre = linkNode
-	l.head.next = linkNode
+    l.head.next.pre = linkNode
+    l.head.next = linkNode
 }
 
 func (l *LRUCache) moveToHead(linkNode *LinkNode) {
-	//1. 删除节点原来的位置
-	l.removeNode(linkNode)
-	//2. 插入到链表头部
-	l.addToHead(linkNode)
+    //1. 删除节点原来的位置
+    l.removeNode(linkNode)
+    //2. 插入到链表头部
+    l.addToHead(linkNode)
 }
 
 
 func initLinkNode(key, value int) *LinkNode {
-	return &LinkNode{
-		key: key,
-		value: value,
-	}
+    return &LinkNode{
+        key: key,
+        value: value,
+    }
 }
 
 func conStructLRUCache(cap int) *LRUCache {
-	l := &LRUCache{
-		size:  0,
-		cap:   cap,
-		head:  initLinkNode(0, 0),
-		tail:  initLinkNode(0,0),
-		cache: make(map[int]*LinkNode, 0),
-	}
-	l.head.next = l.tail
-	l.head.pre = nil
-	l.tail.pre = l.head
-	l.tail.next = nil
-	return l
+    l := &LRUCache{
+        size:  0,
+        cap:   cap,
+        head:  initLinkNode(0, 0),
+        tail:  initLinkNode(0,0),
+        cache: make(map[int]*LinkNode, 0),
+    }
+    l.head.next = l.tail
+    l.head.pre = nil
+    l.tail.pre = l.head
+    l.tail.next = nil
+    return l
 }
 
 func (l *LRUCache) print() {
-	for key, value := range l.cache {
-		fmt.Printf(" key: %d, value: %d", key, value.value)
-	}
+    for key, value := range l.cache {
+        fmt.Printf(" key: %d, value: %d", key, value.value)
+    }
 }
 
 func main() {
-	l := conStructLRUCache(2)
-	fmt.Println("\n第一次put")
-	l.Put(1,1)
-	l.print()
-	fmt.Println("\n第二次put")
-	l.Put(2,2)
-	l.print()
-	l.Get(1)
-	fmt.Println("\n第三次put")
-	l.Put(3,3)
-	l.print()
-	fmt.Println("\n第四次put")
-	l.Put(4,4)
-	l.print()
-	fmt.Println("\n第五次put")
-	l.Put(4,8)
-	l.print()
-	fmt.Println("\n第六次put")
-	l.Put(6,6)
-	l.print()
+    l := conStructLRUCache(2)
+    fmt.Println("\n第一次put")
+    l.Put(1,1)
+    l.print()
+    fmt.Println("\n第二次put")
+    l.Put(2,2)
+    l.print()
+    l.Get(1)
+    fmt.Println("\n第三次put")
+    l.Put(3,3)
+    l.print()
+    fmt.Println("\n第四次put")
+    l.Put(4,4)
+    l.print()
+    fmt.Println("\n第五次put")
+    l.Put(4,8)
+    l.print()
+    fmt.Println("\n第六次put")
+    l.Put(6,6)
+    l.print()
 }
 ```
 
