@@ -1,22 +1,22 @@
 ---
 layout: post
-title: istio安装笔记
+title: K8s+Istio+Knative实践
 subtitle: ""
 catalog: true
 tags:
      - istio
 ---
 
-### 环境
+### 1. 环境
 
 - 系统：Ubuntu 20.04.1 LTS
 - kernel: 5.4.0-52-generic
 - Kubernetes: v1.19.3
-- Istio版本：1.7.4
- 
-### 安装K8s
+- Istio版本：1.9.4
 
-#### 禁用swap
+### 2. K8s
+
+#### 2.1 禁用swap
 
 临时关闭swap
 ```
@@ -31,7 +31,7 @@ vm.swappiness=0
 # sysctl -p /etc/sysctl.d/k8s.conf  # 使之生效
 ```
 
-#### 设置sysctl
+#### 2.2 设置sysctl
 
 内核是否加载br_netfilter模块
 ```
@@ -56,7 +56,7 @@ EOF
 sudo sysctl --system 
 ```
 
-#### 安装Docker
+#### 2.3 安装Docker
 
 ```
 # apt update && apt install docker.io
@@ -64,7 +64,7 @@ sudo sysctl --system
 # systemctl enable docker
 ```
 
-#### 安装k8s master
+#### 2.4 安装k8s master
 
 ```
 # apt-get update && sudo apt-get install -y ca-certificates \
@@ -109,7 +109,7 @@ kubeadm join的命令, 供加入worker节点用
 # kubectl taint nodes --all node-role.kubernetes.io/master-
 ```
 
-### 安装calico
+#### 2.5 安装calico
 
 ```
 # wget -c https://docs.projectcalico.org/v3.11/manifests/calico.yaml
@@ -131,7 +131,7 @@ xiabingyao-lc0   Ready    master   14h   v1.19.3
 ```
 
 ```
-# kubectl  get pod -A
+# kubectl get pod -A
 NAMESPACE     NAME                                       READY   STATUS    RESTARTS   AGE
 kube-system   calico-kube-controllers-6b8f6f78dc-l4z4r   1/1     Running   0          14h
 kube-system   calico-node-sn8rk                          1/1     Running   0          14h
@@ -144,7 +144,7 @@ kube-system   kube-proxy-7jbqs                           1/1     Running   0    
 kube-system   kube-scheduler-xiabingyao-lc0              1/1     Running   0          14h
 ```
 
-### 安装istio
+### 3. Istio
 
 下载istio
 ```
@@ -154,18 +154,18 @@ kube-system   kube-scheduler-xiabingyao-lc0              1/1     Running   0    
 100   102  100   102    0     0     28      0  0:00:03  0:00:03 --:--:--    28
 100  4277  100  4277    0     0   1042      0  0:00:04  0:00:04 --:--:-- 13160
 
-Downloading istio-1.7.4 from https://github.com/istio/istio/releases/download/1.7.4/istio-1.7.4-linux-amd64.tar.gz ...
+Downloading istio-1.9.4 from https://github.com/istio/istio/releases/download/1.9.4/istio-1.9.4-linux-amd64.tar.gz ...
 
-Istio 1.7.4 Download Complete!
+Istio 1.9.4 Download Complete!
 
-Istio has been successfully downloaded into the istio-1.7.4 folder on your system.
+Istio has been successfully downloaded into the istio-1.9.4 folder on your system.
 
 Next Steps:
 See https://istio.io/latest/docs/setup/install/ to add Istio to your Kubernetes cluster.
 
 To configure the istioctl client tool for your workstation,
-add the /root/istio-1.7.4/bin directory to your environment path variable with:
-     export PATH="$PATH:/root/istio-1.7.4/bin"
+add the /root/istio-1.9.4/bin directory to your environment path variable with:
+     export PATH="$PATH:/root/istio-1.9.4/bin"
 
 Begin the Istio pre-installation check by running:
      istioctl x precheck 
@@ -177,8 +177,8 @@ istioctl加入PATH，kubectl命令行不全，istioctl命令行补全
 ```
 # vim .bashrc  # 添加如下内容
 source <(kubectl completion bash)
-export PATH="$PATH:/root/istio-1.7.4/bin"
-source ~/istio-1.7.4/tools/istioctl.bash
+export PATH="$PATH:/root/istio-1.9.4/bin"
+source ~/istio-1.9.4/tools/istioctl.bash
 ```
 
 安装 demo 配置
@@ -199,10 +199,10 @@ istio-egressgateway    ClusterIP      10.96.63.196   <none>        80/TCP,443/TC
 istio-ingressgateway   LoadBalancer   10.107.85.29   <pending>     15021:30197/TCP,80:32242/TCP,443:30567/TCP,31400:31724/TCP,15443:30271/TCP   3h58m
 istiod                 ClusterIP      10.99.20.87    <none>        15010/TCP,15012/TCP,443/TCP,15014/TCP,853/TCP                                4h
 ```
-集群运行在一个不支持外部负载均衡器的环境中，istio-ingressgateway的EXTERNAL-IP将显示为 <pending> 状态。
+集群运行在一个不支持外部负载均衡器的环境中，istio-ingressgateway的EXTERNAL-IP将显示为<pending>状态。
 可使用服务的NodePort或端口转发来访问网关.
 
-### 注入Sidecar
+#### 3.1 注入Sidecar
 
 >为了充分利用 Istio 的所有特性，网格中的 pod 必须运行一个 Istio sidecar 代理。
 下面的章节描述了向 pod 中注入 Istio sidecar 的两种方法：使用`istioctl`手动注入或启用 pod 所属命名空间的 Istio sidecar 注入器自动注入。
@@ -210,7 +210,7 @@ istiod                 ClusterIP      10.99.20.87    <none>        15010/TCP,150
 当pod所属命名空间启用自动注入后，自动注入器会使用准入控制器在创建Pod时自动注入代理配置。
 通过应用`istio-sidecar-injector`ConfigMap 中定义的模版进行注入。
 
-#### 手动注入
+#### 3.1.1 手动注入
 
 使用`istioctl kube-inject`实现注入，默认使用集群内的配置完成注入
 ```
@@ -232,11 +232,11 @@ istioctl kube-inject \
 
 READY 2/2说明sidecar已经被注入到sleep的pod中
 ```
-~/istio-1.7.4# kubectl get pod 
+~/istio-1.9.4# kubectl get pod 
 NAME                     READY   STATUS    RESTARTS   AGE
 sleep-77dd9bc8dc-mr7lt   2/2     Running   0          11m
 ```
-#### 自动注入
+#### 3.1.2 自动注入
 
 使用 Istio 提供的准入控制器变更 webhook，可以将 sidecar 自动添加到可用的 Kubernetes pod 中.
 
@@ -279,15 +279,15 @@ Events:
   Type    Reason     Age   From               Message
   ----    ------     ----  ----               -------
   Normal  Scheduled  44s   default-scheduler  Successfully assigned default/sleep-854565cb79-qkklc to xiabingyao-lc0
-  Normal  Pulling    43s   kubelet            Pulling image "docker.io/istio/proxyv2:1.7.4"
-  Normal  Pulled     40s   kubelet            Successfully pulled image "docker.io/istio/proxyv2:1.7.4" in 2.376722895s
+  Normal  Pulling    43s   kubelet            Pulling image "docker.io/istio/proxyv2:1.9.4"
+  Normal  Pulled     40s   kubelet            Successfully pulled image "docker.io/istio/proxyv2:1.9.4" in 2.376722895s
   Normal  Created    40s   kubelet            Created container istio-init
   Normal  Started    40s   kubelet            Started container istio-init
   Normal  Pulled     39s   kubelet            Container image "governmentpaas/curl-ssl" already present on machine
   Normal  Created    39s   kubelet            Created container sleep
   Normal  Started    39s   kubelet            Started container sleep
-  Normal  Pulling    39s   kubelet            Pulling image "docker.io/istio/proxyv2:1.7.4"
-  Normal  Pulled     36s   kubelet            Successfully pulled image "docker.io/istio/proxyv2:1.7.4" in 2.598229594s
+  Normal  Pulling    39s   kubelet            Pulling image "docker.io/istio/proxyv2:1.9.4"
+  Normal  Pulled     36s   kubelet            Successfully pulled image "docker.io/istio/proxyv2:1.9.4" in 2.598229594s
   Normal  Created    36s   kubelet            Created container istio-proxy
   Normal  Started    36s   kubelet            Started container istio-proxy
 ```
@@ -311,9 +311,16 @@ spec:
         command: ["/bin/sleep","infinity"]
 ```
 
-### 部署Bookinfo应用
+#### 3.4 卸载istio
 
-#### Bookinfo应用介绍
+卸载程序将删除 RBAC 权限、istio-system 命名空间和所有相关资源。可以忽略那些不存在的资源的报错，因为它们可能已经被删除掉了。
+```
+# istioctl manifest generate --set profile=demo | kubectl delete -f -
+```
+
+### 4. 微服务Bookinfo应用
+
+#### 4.1 Bookinfo应用介绍
 >这个示例部署了一个用于演示多种 Istio 特性的应用，该应用由四个单独的微服务构成。 这个应用模仿在线书店的一个分类，显示一本书的信息。 页面上会显示一本书的描述，书籍的细节（ISBN、页数等），以及关于这本书的一些评论。
 
 Bookinfo应用分为四个单独的微服务：
@@ -340,7 +347,7 @@ reviews微服务有3个版本：
 >所有的微服务都和Envoy sidecar集成在一起，被集成服务所有的出入流量都被sidecar所劫持，
 >这样就为外部控制准备了所需的Hook，然后就可以利用Istio控制平面为应用提供服务路由、遥测数据收集以及策略实施等功能。
 
-#### 具体部署
+#### 4.2 部署Bookinfo
 ```
 # kubectl label namespace default istio-injection=enabled
 
@@ -383,7 +390,7 @@ ratings       ClusterIP   10.98.209.167   <none>        9080/TCP   6m58s
 reviews       ClusterIP   10.106.27.124   <none>        9080/TCP   6m58s
 ```
 
-#### 访问Bookinfo
+#### 4.3 访问Bookinfo
 
 ```
 # kubectl exec -it $(kubectl get pod -l app=ratings -o jsonpath='{.items[0].metadata.name}') -c ratings -- curl productpage:9080/productpage | grep -o "<title>.*</title>"
@@ -408,8 +415,7 @@ bookinfo-gateway   3m34s
 <title>Simple Bookstore App</title>
 ```
 
-
-#### 清理Bookinfo应用
+#### 4.4 清理Bookinfo应用
 
 删除路由规则，删除应用pod
 ```
@@ -428,15 +434,120 @@ No resources found in default namespace.
 No resources found in default namespace.
 ```
 
-### 卸载istio
+### 5. Knative
 
-卸载程序将删除 RBAC 权限、istio-system 命名空间和所有相关资源。可以忽略那些不存在的资源的报错，因为它们可能已经被删除掉了。
+#### 5.1 Knative介绍
+
+>Knative提供了一系列的k8s组件，为k8s集群引入了事件驱动和无服务能力.
+>Knative api是基于k8s api封装的，所以Knative资源和k8s资源是兼容的，用k8s现有的工具也是可以管理knative资源的.
+
+通用的语言和包含对k8s友好的工具框架可以和knative一起顺利结合来减少花在通用部署问题上的时间消耗，例如：
+- 部署在一个容器里
+- 蓝绿部署的路由和流量管理
+- 按需弹性扩缩容
+- 运行的服务和事件系统绑定
+
+Knative有两个核心组件，提供不同的功能：
+- Knative Serving: 简便管理k8s上的无状态服务，通过减少开发者为弹性扩缩容，网络，部署花费的精力
+- Knative Eventing: 通过将事件路由公开为配置而不是嵌入代码中，可以轻松地在群集内组件和群集外组件之间路由事件
+
+这些组件以Kubernetes定制资源定义(CRD)的形式提供.
+
+#### 5.1.1 Serving模块
+
+Serving模块定义了一组特定的对象来控制所有功能：
+- Revision（修订版本）
+- Configuration （配置）
+- Route（路由）
+- Service（服务）
+
+这些对象之间的相互关系：
+<img src="/img/posts/2020-10-22/knative_serving.png"/>
+
+
+#### 5.2 Knative Serving安装
+
+安装serving crd
 ```
-# istioctl manifest generate --set profile=demo | kubectl delete -f -
+# kubectl apply -f https://github.com/knative/serving/releases/download/v0.22.0/serving-crds.yaml
 ```
 
-### 参考链接
+安装knative serving组件
+```
+# kubectl apply -f https://github.com/knative/serving/releases/download/v0.22.0/serving-core.yaml
+```
+
+安装网络层，这里选择istio（已装istio的话，就忽略）
+```
+# kubectl apply -f https://github.com/knative/net-istio/releases/download/v0.22.0/istio.yaml
+```
+
+安装Knative Istio controller
+```
+# kubectl apply -f https://github.com/knative/net-istio/releases/download/v0.22.0/net-istio.yaml
+```
+如果遇到gcr镜像拉取不下来的问题，可以采用dockerHub自动构建功能，重新编译镜像，然后从dockerHub上拉取镜像，Dockerfile形如：
+```
+FROM gcr.io/knative-releases/knative.dev/serving/cmd/controller@sha256:d772809059033e437d6e98248a334ded37b6f430c2ca23377875cc2459a3b73e
+MAINTAINER iceyao
+```
+
+查看Knative serving组件
+```
+# kubectl get pods --namespace knative-serving
+NAME                                READY   STATUS    RESTARTS   AGE
+activator-8c4654594-kzq2s           1/1     Running   3          18m
+autoscaler-54c787f494-5wztl         1/1     Running   0          7m33s
+controller-564c6bcbc7-vkjdn         1/1     Running   0          11m
+istio-webhook-8575b9d9cf-kzj27      1/1     Running   0          4m24s
+networking-istio-7494bdf9c4-vs8ql   1/1     Running   0          8m27s
+webhook-7777865cf4-pzb2g            1/1     Running   0          13m
+```
+
+#### 5.3 Knative Eventing安装
+
+安装eventing crd
+```
+# kubectl apply -f https://github.com/knative/eventing/releases/download/v0.22.0/eventing-crds.yaml
+```
+
+安装knative eventing组件
+```
+# kubectl apply -f https://github.com/knative/eventing/releases/download/v0.22.0/eventing-core.yaml
+```
+
+#### 5.4 demo应用
+
+```
+# kn service create helloworld-go --image yao3690093/helloworld-go --env TARGET="Go Sample v1"
+```
+
+```
+# kn service describe helloworld-go
+Name:       helloworld-go
+Namespace:  default
+Age:        1h
+URL:        http://helloworld-go.default.example.com
+
+Revisions:
+  100%  @latest (helloworld-go-00001) [1] (1h)
+        Image:  yao3690093/helloworld-go (pinned to fb89d9)
+
+Conditions:
+  OK TYPE                   AGE REASON
+  ++ Ready                  58m
+  ++ ConfigurationsReady    58m
+  ++ RoutesReady            58m
+```
+
+临时dns访问
+```
+# curl -H "Host: helloworld-go.default.example.com" http://192.168.39.228:32198
+```
+
+### 6. 参考链接
 
 - [基于Ubuntu 20.04安装Kubernetes 1.18](https://zhuanlan.zhihu.com/p/138554103)
 - [istio官方文档-设置Sidecar](https://istio.io/latest/zh/docs/setup/additional-setup/sidecar-injection/#manual-sidecar-injection)
 - [istio getting-started](https://istio.io/latest/zh/docs/setup/getting-started/#platform)
+- [https://knative.dev/docs/](https://knative.dev/docs/)

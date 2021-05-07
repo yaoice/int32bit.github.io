@@ -784,7 +784,6 @@ Settings ---> Webhooks ----> 配置URL(http://<Argo-cd-server地址>/api/webhook
                        |---> Test(执行，返回200即ok)
 ```
 
-
 #### 2.10 argo api
 
 获取bearer token
