@@ -754,6 +754,9 @@ Query OK, 0 rows affected (0.000 sec)
 编辑placement配置
 ```
 [root@controller1 data]# vim /etc/placement/placement.conf
+[placement_database]
+connection = mysql+pymysql://placement:placement@controller1/placement
+
 [api]
 # ...
 auth_strategy = keystone
@@ -2868,9 +2871,14 @@ cephfs的nfs是基于cephfs提供，所以在cephfs中创建一个/nfs目录，�
 [root@ceph-5 ~]# mount -t nfs 172.16.80.45:/nfs /mnt/
 ```
 
-## 4. 参考链接
+## 云管
+
+- https://github.com/platform9/openstack-omni 提供一套标准的API管理混合和多云环境
+
+## 5. 参考链接
 
 - [OpenStack Installation Guide](https://docs.openstack.org/install-guide/)
 - [INSTALLING CEPH](https://docs.ceph.com/en/latest/install/)
 - [cephadm部署ceph集群](https://blog.csdn.net/networken/article/details/106870859)
 - [CentOS8使用cephadm部署和配置Ceph Octopus](https://blog.csdn.net/get_set/article/details/108092248)
+- [跳出云管看云管](https://zhuanlan.zhihu.com/p/77897908)

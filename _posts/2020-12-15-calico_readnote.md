@@ -4118,5 +4118,5 @@ root     54360  0.0  0.0   4208   392 ?        Ss   Dec11   0:00 runsv confd
 ### 参考链接
 
 - [runit 快速入门](https://cloud.tencent.com/developer/article/1195794)
-- [calico网络原理、组网方式和使用](https://cloud.tencent.com/developer/article/1482739)
+- [Calico 介绍、原理与使用](https://cloud.tencent.com/developer/article/1638845)
 - [calico网络工作模式](https://www.cnblogs.com/goldsunshine/p/10701242.html#BxJP5nDX)
