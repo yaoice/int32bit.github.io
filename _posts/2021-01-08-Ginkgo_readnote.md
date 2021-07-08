@@ -4,7 +4,7 @@ title: Ginkgo学习笔记
 subtitle: ""
 catalog: true
 tags:
-- k8s
+- Go
 
 ---
 

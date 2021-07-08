@@ -14,9 +14,9 @@ Galaxy是一个Kubernetes网络项目，旨在为Pod提供overlay和高性能底
 
 ### galaxy组件
 
-它由三个组件组成-Galaxy，CNI插件和Galaxy IPAM。 
+它由三个组件组成-Galaxy，CNI插件和Galaxy IPAM。
 
-- Galaxy：在每个kubelet节点上运行的守护进程，该进程调用不同种类的CNI插件来设置Pod所需的网络。 
+- Galaxy：在每个kubelet节点上运行的守护进程，该进程调用不同种类的CNI插件来设置Pod所需的网络。
 - Galaxy IPAM：是Kubernetes Scheduler插件(Scheduler Extender方式扩展)，可以用作浮动IP配置和IP分配管理器。
 - CNI插件
 
@@ -78,7 +78,7 @@ kind: DaemonSet
 metadata:
   labels:
     app: galaxy
-  name: galaxy-daemonset 
+  name: galaxy-daemonset
   namespace: kube-system
 spec:
   selector:
@@ -99,7 +99,7 @@ spec:
         args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3 --network-policy"]
       # private-cloud should run without --route-eni
       # args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3"]
-        imagePullPolicy: IfNotPresent 
+        imagePullPolicy: IfNotPresent
         env:
           - name: MY_NODE_NAME
             valueFrom:
@@ -301,18 +301,18 @@ spec:
 ```
 tkestack.io iceyao$ tree -L 3 galaxy/
 galaxy/
-├── CONTRIBUTING.md                   
+├── CONTRIBUTING.md
 ├── LICENSE
 ├── Makefile    galaxy的Makefile文件
-├── README.md   
-├── Vagrantfile  
+├── README.md
+├── Vagrantfile
 ├── artifacts   floatingip和pool的crd yaml文件
 │   └── examples
 │       ├── crd.yaml
 │       ├── example-floatip.yaml
 │       └── example-pool.yaml
 ├── build
-│   ├── docker      
+│   ├── docker
 │   │   ├── galaxy       galaxy Dockerfile
 │   │   └── galaxy-ipam  galaxy-ipam Dockerfile
 │   └── lib              Makefile引用的库
@@ -322,15 +322,15 @@ galaxy/
 │       ├── golang.mk    golang编译相关
 │       ├── image.mk     docker镜像编译相关
 │       └── install-buildx.sh  安装buildx的脚本
-├── cmd                 
+├── cmd
 │   ├── galaxy           galaxy启动程序入口
 │   │   └── galaxy.go
 │   └── galaxy-ipam      galaxy-ipam启动程序入口
 │       └── galaxy-ipam.go
 ├── cni                  具体cni插件实现
-│   ├── ipam             
+│   ├── ipam
 │   │   └── ipam.go
-│   ├── k8s-sriov          
+│   ├── k8s-sriov
 │   │   ├── k8s_sriov.go
 │   │   └── sriov.conf
 │   ├── k8s-vlan
@@ -394,7 +394,7 @@ galaxy/
 │   ├── update-codegen.sh
 │   ├── updatevendor.sh
 │   └── verify-codegen.sh
-├── pkg                   
+├── pkg
 │   ├── api
 │   │   ├── cniutil   cni工具库，构建/解析CNIArgs，Delegate cmdAdd/cmdDel请求
 │   │   ├── docker    docker client对象，与docker交互
@@ -404,11 +404,11 @@ galaxy/
 │   │   ├── galaxy.go
 │   │   ├── options
 │   │   └── server.go
-│   ├── gc                       
+│   ├── gc
 │   │   ├── flannel_gc.go      flannel垃圾回收器
 │   │   ├── flannel_gc_test.go
 │   │   └── gc.go
-│   ├── ipam                
+│   ├── ipam
 │   │   ├── api
 │   │   ├── apis
 │   │   ├── client
@@ -418,9 +418,9 @@ galaxy/
 │   │   ├── schedulerplugin  调度插件类型定义
 │   │   ├── server          Server结构体，命令行启动参数
 │   │   └── utils
-│   ├── network              
+│   ├── network
 │   │   ├── kernel          内核相关参数
-│   │   ├── netlink.go      
+│   │   ├── netlink.go
 │   │   ├── netlink_test.go
 │   │   ├── netns
 │   │   ├── portmapping     端口映射，包含iptables规则处理，端口监听操作
@@ -445,7 +445,7 @@ galaxy/
 │       ├── page
 │       ├── utils.go
 │       └── utils_test.go
-├── tools                  
+├── tools
 │   ├── netlink_monitor
 │   │   └── monitor.go
 │   ├── network
@@ -476,6 +476,7 @@ func main() {
     // 接收命令行参数
     galaxy.AddFlags(pflag.CommandLine)
     flag.InitFlags()
+    //日志初始化，默认每隔5秒钟flush下pending的log I/O
     logs.InitLogs()
     defer logs.FlushLogs()
 
@@ -869,7 +870,7 @@ func DelegateAdd(netconf map[string]interface{}, args *skel.CmdArgs, ifName stri
     if err != nil {
         return nil, err
     }
-    // 
+    //
     glog.Infof("delegate add %s args %s conf %s", args.ContainerID, args.Args, string(netconfBytes))
     // 调用cni标准库完成ADD操作
     return invoke.ExecPluginWithResult(pluginPath, netconfBytes, &invoke.Args{
@@ -1085,6 +1086,7 @@ func main() {
     s.AddFlags(pflag.CommandLine)
 
     flag.InitFlags()
+    //日志初始化，默认每隔5秒钟flush下pending的log I/O
     logs.InitLogs()
     defer logs.FlushLogs()
 
@@ -1112,7 +1114,9 @@ type JsonConf struct {
 }
 
 type Server struct {
+        //调度相关配置
     JsonConf
+    //API server启动参数
     *options.ServerRunOptions
     client               kubernetes.Interface
     crdClient            versioned.Interface
@@ -1238,7 +1242,7 @@ func NewFloatingIPPlugin(conf Conf, args *PluginFactoryArgs) (*FloatingIPPlugin,
     // 外部IP不设置FIPInformer的EventHandler
     plugin.secondIPAM = floatingip.NewCrdIPAM(args.CrdClient, floatingip.ExternalIp, nil)
     plugin.hasSecondIPConf.Store(false)
-    // 初始化cloudProvider(客户端)，这里没找到grpc server启动？
+    // 初始化cloudProvider(客户端)，连接到第三方公有云的grpc server
     if conf.CloudProviderGRPCAddr != "" {
         plugin.cloudProvider = cloudprovider.NewGRPCCloudProvider(conf.CloudProviderGRPCAddr)
     }
@@ -1502,6 +1506,7 @@ func (s *Server) healthy(request *restful.Request, response *restful.Response) {
 
 没有在cni插件中指定ipam，pod是如何获取到ip呢？pod如果启用eniNetwork，在galaxy-ipam调度过程bind阶段会为每个pod的annotation带上网络信息，格式如`k8s.v1.cni.galaxy.io/args: '{"common":{"ipinfos":[{"ip":"19.16.104.163/24","vlan":0,"gateway":"19.16.104.254"}]}}'`，
 galaxy-sdn cni插件会发请求至`http://dummy/cni`, galaxy server会收到该请求，最终调用到`cniutil.CmdAdd`
+
 ```
 # github.com/yaoice/galaxy/pkg/galaxy/server.go
 installHandlers -> g.cni -> g.requestFunc -> g.cmdAdd -> cniutil.CmdAdd
@@ -1584,20 +1589,239 @@ func Allocate(ipamType string, args *skel.CmdArgs) ([]uint16, []types.Result, er
 通过scheduler bind阶段把网络地址信息记录在pod的annotation上，然后再通过kubelet加载的galaxy-sdn cni插件把cni请求截获发到galaxy server端，
 解析pod的annotation提取网络地址信息，用于构建cni请求的CmdArgs，最后再去请求对应的cni插件
 
-### galaxy二层网络sample
+#### 固定IP如何实现
+
+```go
+apiVersion: galaxy.k8s.io/v1alpha1
+kind: FloatingIP
+metadata:
+  name: 19.16.104.15
+  selfLink: /apis/galaxy.k8s.io/v1alpha1/floatingips/19.16.104.15
+  uid: d360cf8c-6b34-4a82-bffb-c5e2951d1249
+spec:
+  attribute: '{"NodeName":"12.16.0.6","Uid":"0f136ed1-6154-4c93-889c-9328fb273e47"}'
+  key: dp_default_double-interface-deployment_double-interface-deployment-698d96ff8b-smnh7
+  policy: 2
+```
+ip可以key产生对应关系，key由工作负载类型、浮动IP池、命名空间工作负载名、pod名组合而成，
+当配置了`k8s.v1.cni.galaxy.io/release-policy: "never"`策略后，表明IP不释放。
+如何保证ip被这个工作负载再利用呢？如果删除了这个工作负载，这个浮动IP的cr还在，key变为范匹配`dp_default_double-interface-deployment_`
+
+
+
+在什么时候什么地方修改浮动IP cr的key呢？在删除pod的时候，看下在哪里监听这个事件，FloatingIPPlugin Run函数最终会进入loop函数，一直监听p.unreleased的事件.
+
+```go
+func (p *FloatingIPPlugin) Run -> func (p *FloatingIPPlugin) loop(stop chan struct{})
+```
+
+```go
+//监听p.unreleased的事件
+// loop pulls release event from chan and calls unbind to unbind pod
+func (p *FloatingIPPlugin) loop(stop chan struct{}) {
+    for {
+        select {
+        case <-stop:
+            return
+        case event := <-p.unreleased:
+            go func(event *releaseEvent) {
+                if err := p.unbind(event.pod); err != nil {
+                    event.retryTimes++
+                    if event.retryTimes > 3 {
+                        // leave it to resync to protect chan from explosion
+                        glog.Errorf("abort unbind for pod %s, retried %d times: %v", util.PodName(event.pod),
+                            event.retryTimes, err)
+                    } else {
+                        glog.Warningf("unbind pod %s failed for %d times: %v", util.PodName(event.pod),
+                            event.retryTimes, err)
+                        // backoff time if required
+                        time.Sleep(100 * time.Millisecond * time.Duration(event.retryTimes))
+                        p.unreleased <- event
+                    }
+                }
+            }(event)
+        }
+    }
+}
+```
+
+p.unreleased事件从哪里传来？是从FloatingIPPlugin对象
+
+```go
+//galaxy server启动了一个podInformer，监听pod事件
+//s.plugin=FloatingIPPlugin
+s.PodInformer.Informer().AddEventHandler(eventhandler.NewPodEventHandler(s.plugin))
+```
+
+```go
+//FloatingIPPlugin实现了PodWatcher接口
+// AddPod does nothing
+func (p *FloatingIPPlugin) AddPod(pod *corev1.Pod) error {
+    return nil
+}
+
+// UpdatePod syncs pod ip with ipam
+func (p *FloatingIPPlugin) UpdatePod(oldPod, newPod *corev1.Pod) error {
+    if !p.hasResourceName(&newPod.Spec) {
+        return nil
+    }
+    if !finished(oldPod) && finished(newPod) {
+        // Deployments will leave evicted pods
+        // If it's a evicted one, release its ip
+        glog.Infof("release ip from %s_%s, phase %s", newPod.Name, newPod.Namespace, string(newPod.Status.Phase))
+        p.unreleased <- &releaseEvent{pod: newPod}
+        return nil
+    }
+    if err := p.syncPodIP(newPod); err != nil {
+        glog.Warningf("failed to sync pod ip: %v", err)
+    }
+    return nil
+}
+
+// DeletePod unbinds pod from ipam
+func (p *FloatingIPPlugin) DeletePod(pod *corev1.Pod) error {
+    if !p.hasResourceName(&pod.Spec) {
+        return nil
+    }
+    glog.Infof("handle pod delete event: %s_%s", pod.Name, pod.Namespace)
+    p.unreleased <- &releaseEvent{pod: pod}
+    return nil
+}
+
+//PodWatcher接口
+type PodWatcher interface {
+    AddPod(pod *corev1.Pod) error
+    UpdatePod(oldPod, newPod *corev1.Pod) error
+    DeletePod(pod *corev1.Pod) error
+}
+```
+
+一旦收到p.unreleased的事件，就会执行p.unbind(event.pod)
+
+```go
+func (p *FloatingIPPlugin) lockPod(name, namespace string) func() {
+    key := fmt.Sprintf("%s_%s", namespace, name)
+    start := time.Now()
+    p.podLockPool.LockKey(key)
+    elapsed := (time.Now().UnixNano() - start.UnixNano()) / 1e6
+    if elapsed > 500 {
+        glog.Infof("acquire lock for %s took %d ms, started at %s, %s", key, elapsed,
+            start.Format("15:04:05.000"), getCaller())
+    }
+    return func() {
+        _ = p.podLockPool.UnlockKey(key)
+    }
+}
+
+// unbind release ip from pod
+func (p *FloatingIPPlugin) unbind(pod *corev1.Pod) error {
+    //先执行lockPod函数里面的语句，然后再执行unbind函数里面的非defer语句，最后再执行unbind的returen func
+    defer p.lockPod(pod.Name, pod.Namespace)()
+    glog.V(3).Infof("handle unbind pod %s", pod.Name)
+    //计算浮动IP的key形如：dp_default_double-interface-deployment_double-interface-deployment-698d96ff8b-smnh7
+    keyObj, err := util.FormatKey(pod)
+    if err != nil {
+        return err
+    }
+    key := keyObj.KeyInDB
+    //对接第三方公有云的grpc server
+    if p.cloudProvider != nil {
+        ipInfos, err := p.ipam.ByKeyAndIPRanges(key, nil)
+        if err != nil {
+            return fmt.Errorf("query floating ip by key %s: %v", key, err)
+        }
+        for _, ipInfo := range ipInfos {
+            ipStr := ipInfo.IPInfo.IP.IP.String()
+            glog.Infof("UnAssignIP nodeName %s, ip %s, key %s", ipInfo.NodeName, ipStr, key)
+            if err = p.cloudProviderUnAssignIP(&rpc.UnAssignIPRequest{
+                NodeName:  ipInfo.NodeName,
+                IPAddress: ipStr,
+            }); err != nil {
+                return fmt.Errorf("failed to unassign ip %s from %s: %v", ipStr, key, err)
+            }
+        }
+    }
+    //解析ip释放策略，优先级区分
+    //1.如果配置了浮动IP池的annotation，ip释放策略为never
+    //2.如果配置了浮动IP的annotation，ip释放策略为该配置的策略
+    //3.上述都没匹配到的话，即为默认策略，尽可能快释放ip
+    policy := parseReleasePolicy(&pod.ObjectMeta)
+    if keyObj.Deployment() {
+        //deployment类型
+        //根据不同浮动ip释放策略区分
+        //1.默认策略，即释放ip
+        //2.never策略，即保留ip，举例deployment类型，更新浮动ip cr的key为dp_default_double-interface-deployment_
+        //3.immutable策略，即删除pod或scale down过程释放ip
+        return p.unbindDpPod(keyObj, policy, "during unbinding pod")
+    }
+    //非deployment类型
+    //也是根据不同浮动ip释放策略区分
+    return p.unbindNoneDpPod(keyObj, policy, "during unbinding pod")
+}
+```
+
+galaxy-ipam复用原来的ip在调度filter阶段，在filter阶段完成浮动ip key的更新，例如把key从`dp_default_double-interface-deployment`_更新为`dp_default_double-interface-deployment_double-interface-deployment-698d96ff8b-ns7gv`，然后再在bind阶段完成ip信息写到pod的annotation.
+
+```go
+//filter阶段最终会调用到allocateDuringFilter函数
+func (p *FloatingIPPlugin) Filter ->  p.getSubnet(pod) -> p.allocateDuringFilter(keyObj, reserve, isPoolSizeDefined, reserveSubnet, policy, string(pod.UID))
+```
+
+```go
+func (p *FloatingIPPlugin) allocateDuringFilter(keyObj *util.KeyObj, reserve, isPoolSizeDefined bool,
+    reserveSubnet string, policy constant.ReleasePolicy, uid string) error {
+    // we can't get nodename during filter, update attr on bind
+    attr := floatingip.Attr{Policy: policy, NodeName: "", Uid: uid}
+    if reserve {
+        //浮动ip释放策略为never的话，reserve为true
+        if err := p.allocateInSubnetWithKey(keyObj.PoolPrefix(), keyObj.KeyInDB, reserveSubnet, attr,
+            "filter"); err != nil {
+            return err
+        }
+    } else if isPoolSizeDefined {
+        // if pool size defined and we got no reserved IP, we need to allocate IP from empty key
+        _, ipNet, err := net.ParseCIDR(reserveSubnet)
+        if err != nil {
+            return err
+        }
+        if err := p.allocateInSubnet(keyObj.KeyInDB, ipNet, attr, "filter"); err != nil {
+            return err
+        }
+    }
+    return nil
+}
+
+func (p *FloatingIPPlugin) allocateInSubnetWithKey(oldK, newK, subnet string, attr floatingip.Attr, when string) error {
+    //获取最近更新时间的浮动IP，也就是UpdatedAt时间最大的，并完成key的更新
+    if err := p.ipam.AllocateInSubnetWithKey(oldK, newK, subnet, attr); err != nil {
+        return err
+    }
+    //获取第一个匹配到的ip
+    fip, err := p.ipam.First(newK)
+    if err != nil {
+        return err
+    }
+    glog.Infof("allocated ip %s to %s from %s during %s", fip.IPInfo.IP.String(), newK, oldK, when)
+    return nil
+}
+```
+
+
+
+### galaxy yaml sample
 
 这里是一个使用k8s ipvlan模式的配置，ipvlan支持需要内核4.2以上
 
 #### galayx yaml
 ```
-# vim galaxy-v1.0.6.yaml 
+# vim galaxy-v1.0.6.yaml
 ---
 apiVersion: apps/v1
 kind: DaemonSet
 metadata:
   labels:
     app: galaxy
-  name: galaxy-daemonset 
+  name: galaxy-daemonset
   namespace: kube-system
 spec:
   selector:
@@ -1618,7 +1842,7 @@ spec:
         args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3 --network-policy"]
       # private-cloud should run without --route-eni
       # args: ["-c", "cp -p /etc/galaxy/cni/00-galaxy.conf /etc/cni/net.d/; cp -p /opt/cni/galaxy/bin/galaxy-sdn /opt/cni/galaxy/bin/loopback /opt/cni/bin/; /usr/bin/galaxy --logtostderr=true --v=3"]
-        imagePullPolicy: IfNotPresent 
+        imagePullPolicy: IfNotPresent
         env:
           - name: MY_NODE_NAME
             valueFrom:
@@ -1893,7 +2117,7 @@ data:
       "urlPrefix": "http://127.0.0.1:32760/v1",
       "httpTimeout": 10000000000,
       "filterVerb": "filter",
-      "BindVerb": "bind",
+      "bindVerb": "bind",
       "weight": 1,
       "enableHttps": false,
       "managedResources": [
@@ -1907,7 +2131,10 @@ data:
 }
 ```
 
+### 场景
+
 #### 浮动IP池
+
 ```
 cat <<EOF | kubectl create -f -
 kind: ConfigMap
@@ -1921,10 +2148,114 @@ EOF
 ```
 配置节点所在的网络，pod要使用的网络, 所有节点对应的neutron port需要设置对应的allow_address_pairs: 192.168.104.0/24; 放行这个网段；ips设置多个地址范围
 
+
+配置多个subnet cidr
+```
+# kubectl -n kube-system edit cm floatingip-config
+floatingips: '[{"nodeSubnets":["192.168.104.0/24"],"ips":["192.168.99.130~192.168.99.131"],"subnet":"192.168.99.0/24","gateway":"192.168.99.254"},
+{"nodeSubnets":["192.168.104.0/24"],"ips":["192.168.100.130~192.168.100.180"],"subnet":"192.168.100.0/24","gateway":"192.168.100.254"}]'
+```
+
+
+#### 多网卡
+
+deployment多网卡写法
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: double-interface-deployment
+  labels:
+    app: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web
+      annotations:
+        k8s.v1.cni.cncf.io/networks: "galaxy-flannel,galaxy-k8s-vlan"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              tke.cloud.tencent.com/eni-ip: "1"
+            limits:
+              tke.cloud.tencent.com/eni-ip: "1"
+```
+
+pod多网卡写法
+```
+apiVersion: v1
+kind: Pod
+metadata:
+  name: double-interface-pod
+  annotations:
+    k8s.v1.cni.cncf.io/networks: "galaxy-flannel,galaxy-k8s-vlan"
+spec:
+  containers:
+    - name: nginx
+      image: nginx
+      resources:
+        requests:
+          tke.cloud.tencent.com/eni-ip: "1"
+        limits:
+          tke.cloud.tencent.com/eni-ip: "1"
+```
+
+#### 固定IP
+
+对deployment、statefulset类型都生效
+```
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: double-interface-deployment
+  labels:
+    app: web
+spec:
+  selector:
+    matchLabels:
+      app: web
+  replicas: 2
+  strategy:
+    type: RollingUpdate
+  template:
+    metadata:
+      labels:
+        app: web
+      annotations:
+        k8s.v1.cni.galaxy.io/release-policy: "never"
+        k8s.v1.cni.cncf.io/networks: "galaxy-k8s-vlan,galaxy-flannel"
+    spec:
+      containers:
+        - name: nginx
+          image: nginx
+          ports:
+            - containerPort: 80
+          resources:
+            requests:
+              bke.cloud.linklogis.com/eni-ip: "1"
+            limits:
+              bke.cloud.linklogis.com/eni-ip: "1"
+```
+- `k8s.v1.cni.galaxy.io/release-policy: never`: 不释放IP
+- `k8s.v1.cni.galaxy.io/release-policy: immutable`: 在删除或scale down的情况下才释放IP
+
+
 #### 测试
 
 ```
-[root@localhost ~]# cat common-nginx.yaml 
+[root@localhost ~]# cat common-nginx.yaml
 apiVersion: apps/v1
 kind: ReplicaSet
 metadata:
@@ -1946,7 +2277,7 @@ spec:
     spec:
       containers:
       - name: nginx
-        image: registry.tcnp.com/library/nginx
+        image: registry.xxx.com/library/nginx
         resources:
           requests:
             tke.cloud.tencent.com/eni-ip: "1"
@@ -1984,11 +2315,11 @@ nsenter -n --target 27501
     link/loopback 00:00:00:00:00:00 brd 00:00:00:00:00:00
     inet 127.0.0.1/8 scope host lo
        valid_lft forever preferred_lft forever
-8: eth0@if2: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default 
+8: eth0@if2: <BROADCAST,MULTICAST,NOARP,UP,LOWER_UP> mtu 1500 qdisc noqueue state UNKNOWN group default
     link/ether fa:16:3e:5e:b8:71 brd ff:ff:ff:ff:ff:ff
     inet 192.168.104.153/24 brd 192.168.104.255 scope global eth0
        valid_lft forever preferred_lft forever
-[root@localhost ~]# 
+[root@localhost ~]#
 [root@localhost ~]# route -n
 Kernel IP routing table
 Destination     Gateway         Genmask         Flags Metric Ref    Use Iface

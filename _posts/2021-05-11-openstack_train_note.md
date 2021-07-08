@@ -4,7 +4,7 @@ title: OpenStack Train实践（纯操作）
 subtitle: ""
 catalog: true
 tags:
-     - openstack
+     - OpenStack
 ---
 
 ## 1. 环境
@@ -312,9 +312,19 @@ max_overflow = 1000
 max_pool_size = 1
 max_retries = -1
 
+[cache]
+backend = oslo_cache.memcache_pool
+enabled = True
+memcache_servers = controller1:11211
+
 [token]
 # ...
 provider = fernet
+
+[identity]
+max_password_length = 128
+password_hash_algorithm = pbkdf2_sha512
+password_hash_rounds = 1
 ```
 
 同步keystone数据库表
@@ -964,6 +974,11 @@ transport_url = rabbit://openstack:openstack@controller1:5672/
 my_ip = 172.16.88.245
 use_neutron = true
 firewall_driver = nova.virt.firewall.NoopFirewallDriver
+
+[cache]
+backend = oslo_cache.memcache_pool
+enabled = True
+memcache_servers = controller1:11211
 
 [api_database]
 # ...
@@ -1818,6 +1833,26 @@ OPENSTACK_API_VERSIONS = {
 
 OPENSTACK_KEYSTONE_DEFAULT_DOMAIN = "Default"
 OPENSTACK_KEYSTONE_DEFAULT_ROLE = "member"
+
+OPENSTACK_KEYSTONE_BACKEND = {
+    'name': 'native',
+    'can_edit_user': True,
+    'can_edit_group': True,
+    'can_edit_project': True,
+    'can_edit_domain': True,
+    'can_edit_role': True,
+}
+
+OPENSTACK_HYPERVISOR_FEATURES = {
+    'can_set_mount_point': False,
+    'can_set_password': False,
+    'requires_keypair': False,
+    'enable_quotas': True
+}
+
+OPENSTACK_CINDER_FEATURES = {
+    'enable_backup': True,
+}
 
 TIME_ZONE = "Asia/Shanghai"
 # Path to directory containing policy.json files
